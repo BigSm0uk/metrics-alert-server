@@ -1,0 +1,11 @@
+env: "production"
+logger:
+  level: "info"
+  encoding: "json"
+  outputPaths: ["stdout"]
+  errorOutputPaths: ["stderr"]
+  initialFields: {}
+  encoderConfig:
+    messageKey: "message"
+    levelKey: "level"
+    levelEncoder: "lowercase"
