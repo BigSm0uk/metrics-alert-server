@@ -18,12 +18,15 @@ type MemRepository struct {
 	storage *db.MemStorage
 }
 
+var _ MetricsRepository = (*MemRepository)(nil)
+
 func NewMemRepository(storage *db.MemStorage) *MemRepository {
 	return &MemRepository{storage: storage}
 }
 
 func (r *MemRepository) Save(metric *models.Metrics) error {
 	r.storage.Set(*metric)
+
 	return nil
 }
 
@@ -36,7 +39,8 @@ func (r *MemRepository) Get(id string) (*models.Metrics, error) {
 }
 
 func (r *MemRepository) GetAll() ([]models.Metrics, error) {
-	return r.storage.GetAll(), nil
+	metrics := r.storage.GetAll()
+	return metrics, nil
 }
 
 func (r *MemRepository) Delete(id string) error {
