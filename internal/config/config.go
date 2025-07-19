@@ -15,7 +15,7 @@ type Config struct {
 
 func MustLoadConfig() *Config {
 	cfg := &Config{}
-	path := flag.String("config", "", "path to config file")
+	path := flag.String("config", "./config/config.dev.yaml", "path to config file")
 	flag.Parse()
 
 	if *path == "" {
