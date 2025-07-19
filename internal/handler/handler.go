@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/bigsm0uk/metrics-alert-server/internal/service"
 	"github.com/go-chi/chi/v5"
+
+	"github.com/bigsm0uk/metrics-alert-server/internal/service"
 )
 
 type Handler struct {
@@ -20,6 +21,12 @@ func (h *Handler) UpdateMetrics(w http.ResponseWriter, r *http.Request) {
 	t := chi.URLParam(r, "type")
 	id := chi.URLParam(r, "id")
 	value := chi.URLParam(r, "value")
+
+	if id == "" {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("metric name is required"))
+		return
+	}
 
 	err := h.service.UpdateMetric(t, id, value)
 
@@ -37,6 +44,7 @@ func (h *Handler) UpdateMetrics(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Metric updated"))
 }
 func (h *Handler) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
