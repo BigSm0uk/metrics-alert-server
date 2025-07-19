@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/service"
+
 )
 
 type Handler struct {
@@ -32,11 +33,6 @@ func (h *Handler) UpdateMetrics(w http.ResponseWriter, r *http.Request) {
 
 	switch err {
 	case service.ErrInvalidMetricType:
-		{
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte(err.Error()))
-			return
-		}
 	case service.ErrInvalidMetricValue:
 		{
 			w.WriteHeader(http.StatusBadRequest)
