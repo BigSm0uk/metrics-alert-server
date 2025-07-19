@@ -8,6 +8,7 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/router"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/config"
+	"github.com/bigsm0uk/metrics-alert-server/internal/handler"
 	"github.com/bigsm0uk/metrics-alert-server/internal/repository"
 	"github.com/bigsm0uk/metrics-alert-server/internal/service"
 )
@@ -23,7 +24,8 @@ func main() {
 	storage := db.NewMemStorage()
 	repository := repository.NewMemRepository(storage)
 	service := service.NewMetricService(repository, logger)
-	container := di.NewContainer(logger, service)
+	mHandler := handler.NewHandler(service)
+	container := di.NewContainer(logger, service, mHandler)
 	// 4. DI
 	r := router.NewRouter(container)
 	// 5. Initialize server
