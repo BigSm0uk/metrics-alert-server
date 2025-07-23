@@ -27,13 +27,12 @@ func LoggerMiddleware(next http.Handler, logger *zap.Logger) http.Handler {
 		recorder := &statusRecorder{ResponseWriter: w, status: 200}
 		next.ServeHTTP(recorder, r)
 
-		durationMs := float64(time.Since(start).Nanoseconds()) / 1e6
 		logger.Info("request",
 			zap.String("method", r.Method),
 			zap.String("path", r.URL.Path),
 			zap.String("remote_addr", remoteIP),
 			zap.String("request_id", requestID),
-			zap.Float64("duration_ms", durationMs),
+			zap.Duration("duration", time.Since(start)), //почему-то 0 выводит всегда :(
 			zap.Int("response_status", recorder.status),
 		)
 	})

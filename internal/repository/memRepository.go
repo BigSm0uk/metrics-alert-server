@@ -3,34 +3,28 @@ package repository
 import (
 	"fmt"
 
-	"github.com/bigsm0uk/metrics-alert-server/internal/app/db"
-	models "github.com/bigsm0uk/metrics-alert-server/internal/model"
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/storage"
+	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
+	"github.com/bigsm0uk/metrics-alert-server/internal/interfaces"
 )
 
-type MetricsRepository interface {
-	Save(metric *models.Metrics) error
-	Get(id string) (*models.Metrics, error)
-	GetAll() ([]models.Metrics, error)
-	Delete(id string) error
-}
-
 type MemRepository struct {
-	storage *db.MemStorage
+	storage *storage.MemStorage
 }
 
-var _ MetricsRepository = (*MemRepository)(nil)
+var _ interfaces.MetricsRepository = (*MemRepository)(nil)
 
-func NewMemRepository(storage *db.MemStorage) *MemRepository {
+func NewMemRepository(storage *storage.MemStorage) *MemRepository {
 	return &MemRepository{storage: storage}
 }
 
-func (r *MemRepository) Save(metric *models.Metrics) error {
+func (r *MemRepository) Save(metric *domain.Metrics) error {
 	r.storage.Set(*metric)
 
 	return nil
 }
 
-func (r *MemRepository) Get(id string) (*models.Metrics, error) {
+func (r *MemRepository) Get(id string) (*domain.Metrics, error) {
 	metric, ok := r.storage.Get(id)
 	if !ok {
 		return nil, fmt.Errorf("not found")
@@ -38,7 +32,7 @@ func (r *MemRepository) Get(id string) (*models.Metrics, error) {
 	return &metric, nil
 }
 
-func (r *MemRepository) GetAll() ([]models.Metrics, error) {
+func (r *MemRepository) GetAll() ([]domain.Metrics, error) {
 	metrics := r.storage.GetAll()
 	return metrics, nil
 }

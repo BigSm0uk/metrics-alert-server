@@ -8,10 +8,6 @@ type Logger struct {
 	zl *zap.Logger
 }
 
-func InitLoggerMust(cfg zap.Config) *zap.Logger {
-	logger, err := cfg.Build()
-	if err != nil {
-		panic(err)
-	}
-	return logger
+func InitLogger(cfg zap.Config) (*zap.Logger, error) {
+	return cfg.Build()
 }

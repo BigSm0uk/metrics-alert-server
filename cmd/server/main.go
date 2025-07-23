@@ -1,11 +1,7 @@
 package main
 
 import (
-	"net/http"
-
-	"github.com/bigsm0uk/metrics-alert-server/internal/app/db"
-	"github.com/bigsm0uk/metrics-alert-server/internal/app/di"
-	"github.com/bigsm0uk/metrics-alert-server/internal/app/router"
+	"github.com/bigsm0uk/metrics-alert-server/internal/app"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/config"
 	"github.com/bigsm0uk/metrics-alert-server/internal/handler"
@@ -14,23 +10,32 @@ import (
 )
 
 func main() {
-	// 1. Load config
-	cfg := config.MustLoadConfig()
-	// 2. Initialize logger
-	logger := zl.InitLoggerMust(cfg.Logger)
+	app, err := InitializeApp()
+	if err != nil {
+		panic(err)
+	}
+	err = app.Run()
+	if err != nil {
+		panic(err)
+	}
+}
+
+func InitializeApp() (*app.App, error) {
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return nil, err
+	}
+	logger, err := zl.InitLogger(cfg.Logger)
+	if err != nil {
+		return nil, err
+	}
 	defer logger.Sync()
-	logger.Info("logger initialized")
-	// 3. Initialize database
-	storage := db.NewMemStorage()
-	repository := repository.NewMemRepository(storage)
-	service := service.NewMetricService(repository, logger)
-	mHandler := handler.NewHandler(service)
-	container := di.NewContainer(logger, service, mHandler)
-	// 4. DI
-	r := router.NewRouter(container)
-	// 5. Initialize server
-	http.ListenAndServe(":8080", r)
-	// 6. Shutdown server
-	// 7. Shutdown database
-	// 8. Shutdown logger
+
+	r, err := repository.InitRepository(cfg)
+	if err != nil {
+		return nil, err
+	}
+	service := service.NewService(r, logger)
+	handler := handler.NewMetricHandler(service)
+	return app.NewApp(cfg, handler, logger), nil
 }

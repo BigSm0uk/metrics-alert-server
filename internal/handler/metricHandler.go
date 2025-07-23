@@ -9,15 +9,15 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/internal/service"
 )
 
-type Handler struct {
+type MetricHandler struct {
 	service *service.MetricService
 }
 
-func NewHandler(service *service.MetricService) *Handler {
-	return &Handler{service: service}
+func NewMetricHandler(service *service.MetricService) *MetricHandler {
+	return &MetricHandler{service: service}
 }
 
-func (h *Handler) UpdateMetrics(w http.ResponseWriter, r *http.Request) {
+func (h *MetricHandler) UpdateMetrics(w http.ResponseWriter, r *http.Request) {
 	t := chi.URLParam(r, "type")
 	id := chi.URLParam(r, "id")
 	value := chi.URLParam(r, "value")
@@ -31,16 +31,14 @@ func (h *Handler) UpdateMetrics(w http.ResponseWriter, r *http.Request) {
 	err := h.service.UpdateMetric(t, id, value)
 
 	if err != nil {
-
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
 		return
-
 	}
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Metric updated"))
 }
-func (h *Handler) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
+func (h *MetricHandler) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
 	m, err := h.service.GetAllMetrics()
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

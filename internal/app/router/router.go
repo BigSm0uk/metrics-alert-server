@@ -7,14 +7,13 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"go.uber.org/zap"
 
-	"github.com/bigsm0uk/metrics-alert-server/internal/app/di"
 	"github.com/bigsm0uk/metrics-alert-server/internal/handler"
 	lm "github.com/bigsm0uk/metrics-alert-server/internal/handler/middleware"
-
 )
 
-func NewRouter(container *di.Container) *chi.Mux {
+func NewRouter(h *handler.MetricHandler, logger *zap.Logger) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.GetHead)
@@ -32,19 +31,18 @@ func NewRouter(container *di.Container) *chi.Mux {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.RequestID)
 	r.Use(func(next http.Handler) http.Handler {
-		return lm.LoggerMiddleware(next, container.Logger)
+		return lm.LoggerMiddleware(next, logger)
 	})
 
-	MapRoutes(r, container.Handler)
+	MapRoutes(r, h)
 
 	return r
 }
 
-func MapRoutes(r *chi.Mux, handler *handler.Handler) {
+func MapRoutes(r *chi.Mux, h *handler.MetricHandler) {
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("OK"))
 	})
-
-	r.Post("/update/{type}/{id}/{value}", handler.UpdateMetrics)
-	r.Get("/", handler.GetAllMetrics)
+	r.Post("/update/{type}/{id}/{value}", h.UpdateMetrics)
+	r.Get("/", h.GetAllMetrics)
 }

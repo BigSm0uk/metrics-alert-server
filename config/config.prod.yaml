@@ -1,4 +1,6 @@
 env: "production"
+storage:
+  type: "mem"
 logger:
   level: "info"
   encoding: "json"

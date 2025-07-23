@@ -1,4 +1,6 @@
 env: "development"
+storage:
+  type: "mem"
 logger:
   level: "debug"
   encoding: "console"
