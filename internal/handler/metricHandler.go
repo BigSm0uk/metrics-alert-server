@@ -18,17 +18,24 @@ func NewMetricHandler(service *service.MetricService) *MetricHandler {
 }
 
 func (h *MetricHandler) UpdateMetrics(w http.ResponseWriter, r *http.Request) {
-	t := chi.URLParam(r, "type")
-	id := chi.URLParam(r, "id")
-	value := chi.URLParam(r, "value")
-
-	if id == "" {
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("metric name is required"))
-		return
+	dto := &MetricDTO{
+		ID:    chi.URLParam(r, "id"),
+		Type:  chi.URLParam(r, "type"),
+		Value: chi.URLParam(r, "value"),
+	}
+	if err := dto.Validate(); err != nil {
+		if err == service.ErrMetricNotFound {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(err.Error()))
+			return
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
+			return
+		}
 	}
 
-	err := h.service.UpdateMetric(t, id, value)
+	err := h.service.UpdateMetric(dto.ID, dto.Type, dto.Value)
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

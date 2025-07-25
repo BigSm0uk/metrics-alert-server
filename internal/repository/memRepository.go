@@ -20,7 +20,6 @@ func NewMemRepository(storage *storage.MemStorage) *MemRepository {
 
 func (r *MemRepository) Save(metric *domain.Metrics) error {
 	r.storage.Set(*metric)
-
 	return nil
 }
 

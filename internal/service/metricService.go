@@ -17,6 +17,7 @@ type MetricService struct {
 }
 
 var (
+	ErrMetricNotFound     = errors.New("metric not found")
 	ErrInvalidMetricType  = errors.New("invalid metric type")
 	ErrInvalidMetricValue = errors.New("invalid metric value")
 )
@@ -24,17 +25,12 @@ var (
 func NewService(repository interfaces.MetricsRepository, logger *zap.Logger) *MetricService {
 	return &MetricService{repository: repository, logger: logger}
 }
-func (s *MetricService) UpdateMetric(t, id, value string) error {
-
-	if t != domain.Counter && t != domain.Gauge {
-		return ErrInvalidMetricType
-	}
-
+func (s *MetricService) UpdateMetric(id, t, value string) error {
 	m, err := s.repository.Get(id)
+	//Пока база в памяти реальной ошибки быть не должно
 	if err != nil {
 		m = &domain.Metrics{}
 	}
-
 	switch t {
 	case domain.Counter:
 		v, parseErr := strconv.ParseInt(value, 10, 64)
