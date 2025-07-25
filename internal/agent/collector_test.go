@@ -14,7 +14,9 @@ func TestMetricsCollector_CollectRuntimeMetrics(t *testing.T) {
 		name: "collect runtime metrics",
 		c:    NewMetricsCollector(),
 	}
-	test.c.CollectRuntimeMetrics()
-	assert.NotEqual(t, 0, len(test.c.metrics))
-	assert.Equal(t, int64(1), test.c.pollCount)
+	t.Run(test.name, func(t *testing.T) {
+		test.c.CollectRuntimeMetrics()
+		assert.NotEqual(t, 0, len(test.c.metrics))
+		assert.Equal(t, int64(1), test.c.pollCount)
+	})
 }
