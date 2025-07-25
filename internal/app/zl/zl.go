@@ -5,7 +5,7 @@ import (
 )
 
 type Logger struct {
-	zl *zap.Logger
+	*zap.Logger
 }
 
 func InitLogger(cfg zap.Config) (*zap.Logger, error) {

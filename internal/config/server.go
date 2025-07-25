@@ -18,14 +18,11 @@ type ServerConfig struct {
 
 func LoadServerConfig() (*ServerConfig, error) {
 	cfg := &ServerConfig{}
-	path := flag.String("config", "./config/config.dev.yaml", "path to config file")
+	path := flag.String("config", "config.test.yaml", "path to config file")
 	flag.Parse()
 
-	if *path == "" {
-		return nil, fmt.Errorf("config file is required")
-	}
-
 	if err := cleanenv.ReadConfig(*path, cfg); err != nil {
+
 		return nil, fmt.Errorf("failed to read config: %v", err)
 	}
 

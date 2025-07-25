@@ -27,6 +27,7 @@ func (h *MetricHandler) UpdateMetrics(w http.ResponseWriter, r *http.Request) {
 		if err == service.ErrMetricNotFound {
 			w.WriteHeader(http.StatusNotFound)
 			w.Write([]byte(err.Error()))
+
 			return
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
