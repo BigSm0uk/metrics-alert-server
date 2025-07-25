@@ -10,15 +10,14 @@ import (
 	S "github.com/bigsm0uk/metrics-alert-server/internal/config/storage"
 )
 
-type Config struct {
-	Env     string          `yaml:"env" required:"true"`
+type ServerConfig struct {
 	Addr    string          `yaml:"port" env-default:":8080"`
 	Storage S.StorageConfig `yaml:"storage" required:"true"`
 	Logger  zap.Config      `yaml:"logger" required:"true"`
 }
 
-func LoadConfig() (*Config, error) {
-	cfg := &Config{}
+func LoadServerConfig() (*ServerConfig, error) {
+	cfg := &ServerConfig{}
 	path := flag.String("config", "./config/config.dev.yaml", "path to config file")
 	flag.Parse()
 

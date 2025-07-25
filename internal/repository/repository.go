@@ -8,7 +8,7 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/internal/interfaces"
 )
 
-func InitRepository(cfg *config.Config) (interfaces.MetricsRepository, error) {
+func InitRepository(cfg *config.ServerConfig) (interfaces.MetricsRepository, error) {
 	switch cfg.Storage.Type {
 	case "mem":
 		return NewMemRepository(storage.NewMemStorage()), nil

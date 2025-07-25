@@ -10,17 +10,17 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/internal/handler"
 )
 
-type App struct {
-	cfg    *config.Config
+type Server struct {
+	cfg    *config.ServerConfig
 	h      *handler.MetricHandler
 	logger *zap.Logger
 }
 
-func NewApp(cfg *config.Config, h *handler.MetricHandler, logger *zap.Logger) *App {
-	return &App{cfg: cfg, h: h, logger: logger}
+func NewServer(cfg *config.ServerConfig, h *handler.MetricHandler, logger *zap.Logger) *Server {
+	return &Server{cfg: cfg, h: h, logger: logger}
 }
 
-func (a *App) Run() error {
+func (a *Server) Run() error {
 
 	r := router.NewRouter(a.h, a.logger)
 

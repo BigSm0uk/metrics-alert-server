@@ -20,8 +20,8 @@ func main() {
 	}
 }
 
-func InitializeApp() (*app.App, error) {
-	cfg, err := config.LoadConfig()
+func InitializeApp() (*app.Server, error) {
+	cfg, err := config.LoadServerConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -37,5 +37,5 @@ func InitializeApp() (*app.App, error) {
 	}
 	service := service.NewService(r, logger)
 	handler := handler.NewMetricHandler(service)
-	return app.NewApp(cfg, handler, logger), nil
+	return app.NewServer(cfg, handler, logger), nil
 }
