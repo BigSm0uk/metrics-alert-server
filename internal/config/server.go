@@ -18,13 +18,22 @@ type ServerConfig struct {
 
 func LoadServerConfig() (*ServerConfig, error) {
 	cfg := &ServerConfig{}
-	path := flag.String("config", "config.test.yaml", "path to config file")
+	path := flag.String("config", "config/config.dev.yaml", "path to config file")
 	flag.Parse()
 
 	if err := cleanenv.ReadConfig(*path, cfg); err != nil {
-
-		return nil, fmt.Errorf("failed to read config: %v", err)
+		fmt.Printf("failed to read config: %v", err)
+		cfg = InitDefaultConfig()
 	}
 
 	return cfg, nil
+}
+func InitDefaultConfig() *ServerConfig {
+	return &ServerConfig{
+		Addr: ":8080",
+		Storage: S.StorageConfig{
+			Type: "mem",
+		},
+		Logger: zap.NewDevelopmentConfig(),
+	}
 }
