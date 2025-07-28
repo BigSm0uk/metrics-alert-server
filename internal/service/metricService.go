@@ -26,7 +26,7 @@ func NewService(repository interfaces.MetricsRepository, logger *zap.Logger) *Me
 	return &MetricService{repository: repository, logger: logger}
 }
 func (s *MetricService) UpdateMetric(id, t, value string) error {
-	m, err := s.repository.Get(id)
+	m, err := s.repository.Get(id, t)
 	//Пока база в памяти реальной ошибки быть не должно
 	if err != nil {
 		m = &domain.Metrics{}
@@ -76,5 +76,13 @@ func (s *MetricService) GetAllMetrics() ([]domain.Metrics, error) {
 		return nil, err
 	}
 	s.logger.Debug("Total metrics", zap.Int("len", len(m)))
+	return m, nil
+}
+func (s *MetricService) GetMetric(id, t string) (*domain.Metrics, error) {
+	m, err := s.repository.Get(id, t)
+	if err != nil {
+		return nil, err
+	}
+	s.logger.Debug("Get metric", zap.String("id", id))
 	return m, nil
 }

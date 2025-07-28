@@ -23,8 +23,8 @@ func (r *MemRepository) Save(metric *domain.Metrics) error {
 	return nil
 }
 
-func (r *MemRepository) Get(id string) (*domain.Metrics, error) {
-	metric, ok := r.storage.Get(id)
+func (r *MemRepository) Get(id, t string) (*domain.Metrics, error) {
+	metric, ok := r.storage.Get(id, t)
 	if !ok {
 		return nil, fmt.Errorf("not found")
 	}

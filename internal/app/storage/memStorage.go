@@ -21,10 +21,16 @@ func (m *MemStorage) Set(metric domain.Metrics) {
 	m.db[metric.ID] = metric
 }
 
-func (m *MemStorage) Get(id string) (domain.Metrics, bool) {
+func (m *MemStorage) Get(id, t string) (domain.Metrics, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	metric, ok := m.db[id]
+	if !ok {
+		return domain.Metrics{}, false
+	}
+	if metric.MType != t {
+		return domain.Metrics{}, false
+	}
 	return metric, ok
 }
 

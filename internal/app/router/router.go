@@ -45,4 +45,5 @@ func MapRoutes(r *chi.Mux, h *handler.MetricHandler) {
 	})
 	r.Post("/update/{type}/{id}/{value}", h.UpdateMetrics)
 	r.Get("/", h.GetAllMetrics)
+	r.Get("/value/{type}/{id}", h.GetMetric)
 }
