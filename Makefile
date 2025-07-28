@@ -67,12 +67,12 @@ build: build-server build-agent
 # Run server
 run-server: build-server
 	@echo [+] Starting server...
-	$(SERVER_BIN)
+	@cd $(SERVER_DIR) && server.exe
 
 # Run agent
 run-agent: build-agent
 	@echo [+] Starting agent...
-	$(AGENT_BIN)
+	@cd $(AGENT_DIR) && agent.exe
 
 # Clean build artifacts
 clean:

@@ -32,7 +32,7 @@ func NewMetricHandler(service *service.MetricService) *MetricHandler {
 	}
 
 	tmpl := template.Must(
-		template.New("metrics.html").Funcs(funcMap).ParseFiles("api/templates/metrics.html"),
+		template.New("metrics.html").Funcs(funcMap).ParseFiles("../../api/templates/metrics.html"),
 	)
 
 	return &MetricHandler{
