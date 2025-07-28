@@ -2,6 +2,7 @@ package zl
 
 import (
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type Logger struct {
@@ -13,6 +14,9 @@ func InitLogger(cfg zap.Config) (*zap.Logger, error) {
 }
 
 func InitDefaultLogger() *zap.Logger {
-	logger, _ := zap.NewDevelopment()
+	cfg := zap.NewDevelopmentConfig()
+	cfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	logger, _ := cfg.Build()
+
 	return logger
 }

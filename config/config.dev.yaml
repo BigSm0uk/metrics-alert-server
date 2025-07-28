@@ -3,6 +3,7 @@ storage:
   type: "mem"
 logger:
   level: "debug"
+  development: true
   encoding: "console"
   outputPaths: ["stdout"]
   errorOutputPaths: ["stderr"]
@@ -10,4 +11,13 @@ logger:
   encoderConfig:
     messageKey: "message"
     levelKey: "level"
-    levelEncoder: "lowercase"
+    timeKey: "time"
+    nameKey: "logger"
+    callerKey: "caller"
+    functionKey: "function"
+    stacktraceKey: "stacktrace"
+    levelEncoder: "capitalColor"
+    timeEncoder: "iso8601"
+    durationEncoder: "string"
+    callerEncoder: "short"
+    nameEncoder: "full"
