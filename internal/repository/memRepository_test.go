@@ -234,7 +234,7 @@ func TestMemRepository_Delete(t *testing.T) {
 			err := tt.r.Delete(tt.args.id)
 			require.NoError(t, err)
 			got, _ := tt.r.GetAll()
-			require.True(t, reflect.DeepEqual(got, tt.want))
+			require.ElementsMatch(t, tt.want, got)
 		})
 	}
 }
