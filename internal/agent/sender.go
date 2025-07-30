@@ -34,7 +34,7 @@ func (s *MetricsSender) SendMetrics(metrics []domain.Metrics) error {
 
 		url := fmt.Sprintf("%s/update/%s/%s/%s", s.serverURL, metric.MType, metric.ID, value)
 
-		resp, err := s.client.R().Post(url)
+		resp, err := s.client.R().SetHeader("Content-Type", "text/plain").Post(url)
 		if err != nil {
 			s.logger.Error("failed to send metric",
 				zap.String("metric", metric.ID),

@@ -24,7 +24,7 @@ type ServerConfig struct {
 func LoadServerConfig() (*ServerConfig, error) {
 	cfg := &ServerConfig{}
 	path := flag.String("config", "config/config.dev.yaml", "path to config file")
-	flag.StringVar(&cfg.Addr, "a", ":8080", "server address")
+	flag.StringVar(&cfg.Addr, "a", "localhost:8080", "server address")
 	flag.Parse()
 
 	if err := cleanenv.ReadConfig(*path, cfg); err != nil {

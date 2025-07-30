@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/bigsm0uk/metrics-alert-server/internal/app"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/config"
@@ -10,6 +13,12 @@ import (
 )
 
 func main() {
+	fmt.Printf("Server starting with args: %v\n", os.Args)
+	fmt.Printf("Working directory: %s\n", func() string {
+		wd, _ := os.Getwd()
+		return wd
+	}())
+
 	app, err := InitializeApp()
 	if err != nil {
 		panic(err)
