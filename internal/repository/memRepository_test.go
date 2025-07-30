@@ -79,7 +79,7 @@ func TestMemRepository_Get(t *testing.T) {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
-				require.ElementsMatch(t, tt.want, got)
+				require.Equal(t, tt.want, got)
 			}
 		})
 	}
