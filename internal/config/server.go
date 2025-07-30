@@ -16,14 +16,15 @@ const (
 
 type ServerConfig struct {
 	Env          string          `yaml:"env" env-default:"development"`
-	Addr         string          `yaml:"port" env-default:":8080"`
 	Storage      S.StorageConfig `yaml:"storage" required:"true"`
 	TemplatePath string          `yaml:"template_path" env-default:"api/templates/metrics.html"`
+	Addr         string
 }
 
 func LoadServerConfig() (*ServerConfig, error) {
 	cfg := &ServerConfig{}
 	path := flag.String("config", "config/config.dev.yaml", "path to config file")
+	flag.StringVar(&cfg.Addr, "a", ":8080", "server address")
 	flag.Parse()
 
 	if err := cleanenv.ReadConfig(*path, cfg); err != nil {
