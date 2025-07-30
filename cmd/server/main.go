@@ -25,10 +25,7 @@ func InitializeApp() (*app.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	logger, err := zl.InitLogger(cfg.Logger)
-	if err != nil {
-		return nil, err
-	}
+	logger := zl.InitLogger(cfg.Env)
 	defer logger.Sync()
 
 	r, err := repository.InitRepository(cfg)
@@ -36,6 +33,7 @@ func InitializeApp() (*app.Server, error) {
 		return nil, err
 	}
 	service := service.NewService(r, logger)
-	handler := handler.NewMetricHandler(service)
+
+	handler := handler.NewMetricHandler(service, cfg.TemplatePath)
 	return app.NewServer(cfg, handler, logger), nil
 }

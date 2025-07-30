@@ -1,8 +1,11 @@
 package config
 
-import "flag"
+import (
+	"flag"
+)
 
 type AgentConfig struct {
+	Env            string
 	Addr           string
 	ReportInterval uint
 	PollInterval   uint
@@ -11,6 +14,7 @@ type AgentConfig struct {
 
 func LoadAgentConfig() (*AgentConfig, error) {
 	cfg := &AgentConfig{}
+	flag.StringVar(&cfg.Env, "e", EnvDevelopment, "environment")
 	flag.StringVar(&cfg.Addr, "a", ":8090", "agent address")
 	flag.UintVar(&cfg.ReportInterval, "r", 10, "report interval")
 	flag.UintVar(&cfg.PollInterval, "p", 2, "poll interval")

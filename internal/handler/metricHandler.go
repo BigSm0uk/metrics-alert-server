@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/bigsm0uk/metrics-alert-server/api/templates"
 	"github.com/bigsm0uk/metrics-alert-server/internal/service"
 )
 
@@ -15,7 +16,16 @@ type MetricHandler struct {
 	tmpl    *template.Template
 }
 
-func NewMetricHandler(service *service.MetricService) *MetricHandler {
+func NewMetricHandler(service *service.MetricService, templatePath string) *MetricHandler {
+	tmpl := initializeTemplate(templatePath)
+
+	return &MetricHandler{
+		service: service,
+		tmpl:    tmpl,
+	}
+}
+
+func initializeTemplate(path string) *template.Template {
 	funcMap := template.FuncMap{
 		"derefFloat": func(f *float64) float64 {
 			if f == nil {
@@ -31,14 +41,16 @@ func NewMetricHandler(service *service.MetricService) *MetricHandler {
 		},
 	}
 
-	tmpl := template.Must(
-		template.New("metrics.html").Funcs(funcMap).ParseFiles("../../api/templates/metrics.html"),
-	)
-
-	return &MetricHandler{
-		service: service,
-		tmpl:    tmpl,
+	// Пытаемся загрузить из файла
+	tmpl, err := template.New("metrics.html").Funcs(funcMap).ParseFiles(path)
+	if err != nil {
+		// Если ошибка, используем дефолтный шаблон
+		tmpl = template.Must(
+			template.New("metrics.html").Funcs(funcMap).Parse(templates.DefaultMetricsHTML),
+		)
 	}
+
+	return tmpl
 }
 
 func (h *MetricHandler) UpdateMetrics(w http.ResponseWriter, r *http.Request) {

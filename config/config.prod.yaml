@@ -1,23 +1,4 @@
 env: "production"
 storage:
   type: "mem"
-logger:
-  level: "info"
-  development: false
-  encoding: "json"
-  outputPaths: ["stdout"]
-  errorOutputPaths: ["stderr"]
-  initialFields: {}
-  encoderConfig:
-    messageKey: "message"
-    levelKey: "level"
-    timeKey: "time"
-    nameKey: "logger"
-    callerKey: "caller"
-    functionKey: "function"
-    stacktraceKey: "stacktrace"
-    levelEncoder: "lowercase"
-    timeEncoder: "iso8601"
-    durationEncoder: "string"
-    callerEncoder: "short"
-    nameEncoder: "full"
+template_path: "api/templates/metrics.html"
