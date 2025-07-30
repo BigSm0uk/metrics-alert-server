@@ -2,14 +2,17 @@ package config
 
 import (
 	"flag"
+	"fmt"
+
+	"github.com/ilyakaznacheev/cleanenv"
 )
 
 type AgentConfig struct {
-	Env            string
-	Addr           string
-	ReportInterval uint
-	PollInterval   uint
-	Server         string
+	Env            string `env:"ENV"`
+	Addr           string `env:"AGENT_ADDRESS"`
+	ReportInterval uint   `env:"REPORT_INTERVAL"`
+	PollInterval   uint   `env:"POLL_INTERVAL"`
+	Server         string `env:"ADDRESS"`
 }
 
 func LoadAgentConfig() (*AgentConfig, error) {
@@ -21,5 +24,10 @@ func LoadAgentConfig() (*AgentConfig, error) {
 	flag.StringVar(&cfg.Server, "s", "http://localhost:8080", "server address")
 	flag.Parse()
 
-	return cfg, nil
+	err := cleanenv.ReadEnv(cfg)
+
+	fmt.Printf("Config loaded:\nEnv: %s\nAddr: %s\nReportInterval: %d\nPollInterval: %d\nServer: %s\n",
+		cfg.Env, cfg.Addr, cfg.ReportInterval, cfg.PollInterval, cfg.Server)
+
+	return cfg, err
 }
