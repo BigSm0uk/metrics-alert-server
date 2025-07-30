@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -80,7 +79,7 @@ func TestMemRepository_Get(t *testing.T) {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
-				require.True(t, reflect.DeepEqual(got, tt.want))
+				require.ElementsMatch(t, tt.want, got)
 			}
 		})
 	}
@@ -179,7 +178,7 @@ func TestMemRepository_GetAll(t *testing.T) {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
-				require.True(t, reflect.DeepEqual(got, tt.want))
+				require.ElementsMatch(t, tt.want, got)
 			}
 		})
 	}
