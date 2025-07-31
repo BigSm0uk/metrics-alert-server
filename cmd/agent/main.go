@@ -22,8 +22,8 @@ func InitializeApp() (*app.Agent, error) {
 	if err != nil {
 		return nil, err
 	}
-	logger := zl.InitDefaultLogger()
-	defer logger.Sync()
+	zl.InitLogger(cfg.Env)
+	defer zl.Log.Sync()
 
-	return app.NewAgent(logger, cfg), nil
+	return app.NewAgent(cfg), nil
 }

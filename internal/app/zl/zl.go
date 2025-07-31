@@ -7,26 +7,23 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/internal/config"
 )
 
-type Logger struct {
-	*zap.Logger
-}
+// Log будет доступен всему коду как синглтон.
+// Никакой код, кроме функции Initialize, не должен модифицировать эту переменную.
+// По умолчанию установлен no-op-логер, который не выводит никаких сообщений.
+var Log *zap.Logger = zap.NewNop()
 
-func InitDefaultLogger() *zap.Logger {
-	return developmentLogger()
-}
-
-func InitLogger(env string) *zap.Logger {
+func InitLogger(env string) {
 	switch env {
 	case config.EnvProduction:
-		return productionLogger()
+		Log = productionLogger()
 	default:
-		return developmentLogger()
+		Log = developmentLogger()
 	}
 }
 
 func developmentLogger() *zap.Logger {
 	cfg := zap.Config{
-		Level:       zap.NewAtomicLevelAt(zap.DebugLevel),
+		Level:       zap.NewAtomicLevelAt(zap.InfoLevel),
 		Development: true,
 		Encoding:    "console",
 		EncoderConfig: zapcore.EncoderConfig{
@@ -45,7 +42,7 @@ func developmentLogger() *zap.Logger {
 		},
 		OutputPaths:      []string{"stdout"},
 		ErrorOutputPaths: []string{"stderr"},
-		InitialFields:    map[string]interface{}{},
+		InitialFields:    map[string]any{},
 	}
 
 	logger, _ := cfg.Build()
@@ -73,7 +70,7 @@ func productionLogger() *zap.Logger {
 		},
 		OutputPaths:      []string{"stdout"},
 		ErrorOutputPaths: []string{"stderr"},
-		InitialFields:    map[string]interface{}{},
+		InitialFields:    map[string]any{},
 	}
 
 	logger, _ := cfg.Build()

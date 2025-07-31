@@ -6,20 +6,19 @@ import (
 	"github.com/go-resty/resty/v2"
 	"go.uber.org/zap"
 
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 )
 
 type MetricsSender struct {
 	client    *resty.Client
 	serverURL string
-	logger    *zap.Logger
 }
 
-func NewMetricsSender(serverURL string, logger *zap.Logger) *MetricsSender {
+func NewMetricsSender(serverURL string) *MetricsSender {
 	return &MetricsSender{
 		client:    resty.New(),
 		serverURL: serverURL,
-		logger:    logger,
 	}
 }
 
@@ -36,13 +35,13 @@ func (s *MetricsSender) SendMetrics(metrics []domain.Metrics) error {
 
 		resp, err := s.client.R().SetHeader("Content-Type", "text/plain").Post(url)
 		if err != nil {
-			s.logger.Error("failed to send metric",
+			zl.Log.Error("failed to send metric",
 				zap.String("metric", metric.ID),
 				zap.Error(err))
 			return err
 		}
 
-		s.logger.Debug("metric sent",
+		zl.Log.Debug("metric sent",
 			zap.String("metric", metric.ID),
 			zap.Int("status", resp.StatusCode()))
 	}

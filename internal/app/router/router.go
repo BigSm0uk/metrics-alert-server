@@ -7,13 +7,12 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"go.uber.org/zap"
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/handler"
 	lm "github.com/bigsm0uk/metrics-alert-server/internal/handler/middleware"
 )
 
-func NewRouter(h *handler.MetricHandler, logger *zap.Logger) *chi.Mux {
+func NewRouter(h *handler.MetricHandler) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.GetHead)
@@ -30,9 +29,7 @@ func NewRouter(h *handler.MetricHandler, logger *zap.Logger) *chi.Mux {
 	r.Use(middleware.Timeout(time.Second * 60))
 	r.Use(middleware.RealIP)
 	r.Use(middleware.RequestID)
-	r.Use(func(next http.Handler) http.Handler {
-		return lm.LoggerMiddleware(next, logger)
-	})
+	r.Use(lm.LoggerMiddleware)
 
 	MapRoutes(r, h)
 

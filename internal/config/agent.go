@@ -2,7 +2,6 @@ package config
 
 import (
 	"flag"
-	"fmt"
 
 	"github.com/ilyakaznacheev/cleanenv"
 )
@@ -25,9 +24,6 @@ func LoadAgentConfig() (*AgentConfig, error) {
 	flag.Parse()
 
 	err := cleanenv.ReadEnv(cfg)
-
-	fmt.Printf("Config loaded:\nEnv: %s\nAddr: %s\nReportInterval: %d\nPollInterval: %d\nServer: %s\n",
-		cfg.Env, cfg.Addr, cfg.ReportInterval, cfg.PollInterval, cfg.Server)
 
 	return cfg, err
 }

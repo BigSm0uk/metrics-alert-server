@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/bigsm0uk/metrics-alert-server/internal/app"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/config"
@@ -13,12 +10,6 @@ import (
 )
 
 func main() {
-	fmt.Printf("Server starting with args: %v\n", os.Args)
-	fmt.Printf("Working directory: %s\n", func() string {
-		wd, _ := os.Getwd()
-		return wd
-	}())
-
 	app, err := InitializeApp()
 	if err != nil {
 		panic(err)
@@ -34,15 +25,15 @@ func InitializeApp() (*app.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	logger := zl.InitLogger(cfg.Env)
-	defer logger.Sync()
+	zl.InitLogger(cfg.Env)
+	defer zl.Log.Sync()
 
 	r, err := repository.InitRepository(cfg)
 	if err != nil {
 		return nil, err
 	}
-	service := service.NewService(r, logger)
+	service := service.NewService(r)
 
 	handler := handler.NewMetricHandler(service, cfg.TemplatePath)
-	return app.NewServer(cfg, handler, logger), nil
+	return app.NewServer(cfg, handler), nil
 }
