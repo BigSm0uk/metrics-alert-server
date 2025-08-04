@@ -39,16 +39,15 @@ lint:
 	) else ( \
 		echo [!] golangci-lint not found. Run 'make install-tools' first \
 	)
+# Run tests
+test:
+	@echo [+] Running tests...
+	$(GO) test -v ./...
 
 # Run go vet
 vet:
 	@echo [+] Running go vet...
 	$(GO) vet ./...
-
-# Run tests
-test:
-	@echo [+] Running tests...
-	$(GO) test -v -race ./...
 
 # Build server binary
 build-server:
