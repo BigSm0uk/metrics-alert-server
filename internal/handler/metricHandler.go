@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/goccy/go-json"
 
 	"github.com/bigsm0uk/metrics-alert-server/api/templates"
 	"github.com/bigsm0uk/metrics-alert-server/internal/service"
@@ -53,10 +54,10 @@ func initializeTemplate(path string) *template.Template {
 	return tmpl
 }
 
-func (h *MetricHandler) UpdateMetrics(w http.ResponseWriter, r *http.Request) {
-	dto := &UpdateMetricDTO{
+func (h *MetricHandler) UpdateMetricByParam(w http.ResponseWriter, r *http.Request) {
+	dto := &ParamMetric{
 		ID:    chi.URLParam(r, "id"),
-		Type:  chi.URLParam(r, "type"),
+		MType: chi.URLParam(r, "type"),
 		Value: chi.URLParam(r, "value"),
 	}
 	if err := dto.Validate(); err != nil {
@@ -72,7 +73,7 @@ func (h *MetricHandler) UpdateMetrics(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err := h.service.UpdateMetric(dto.ID, dto.Type, dto.Value)
+	err := h.service.UpdateMetric(dto.ID, dto.MType, dto.Value)
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -81,6 +82,47 @@ func (h *MetricHandler) UpdateMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Metric updated"))
+}
+func (h *MetricHandler) UpdateMetricByBody(w http.ResponseWriter, r *http.Request) {
+	var dto BodyMetric
+
+	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("invalid JSON"))
+		return
+	}
+
+	if err := dto.Validate(); err != nil {
+		if err == service.ErrMetricNotFound {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	var value string
+	if dto.MType == "gauge" && dto.Value != nil {
+		value = fmt.Sprintf("%g", *dto.Value)
+	} else if dto.MType == "counter" && dto.Delta != nil {
+		value = fmt.Sprintf("%d", *dto.Delta)
+	} else {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("missing value"))
+		return
+	}
+
+	err := h.service.UpdateMetric(dto.ID, dto.MType, value)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 }
 func (h *MetricHandler) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
 	m, err := h.service.GetAllMetrics()
@@ -127,4 +169,34 @@ func (h *MetricHandler) GetMetric(w http.ResponseWriter, r *http.Request) {
 		value = fmt.Sprintf("%d", *m.Delta)
 	}
 	w.Write([]byte(value))
+}
+func (h *MetricHandler) GetEnrichMetric(w http.ResponseWriter, r *http.Request) {
+	var dto BodyMetric
+
+	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("invalid JSON"))
+		return
+	}
+
+	if err := dto.Validate(); err != nil {
+		if err == service.ErrMetricNotFound {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	m, err := h.service.GetEnrichMetric(dto.ID, dto.MType)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(m)
 }

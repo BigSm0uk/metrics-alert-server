@@ -22,7 +22,7 @@ func NewMetricsSender(serverURL string) *MetricsSender {
 	}
 }
 
-func (s *MetricsSender) SendMetrics(metrics []domain.Metrics) error {
+func (s *MetricsSender) SendMetricsV1(metrics []domain.Metrics) error {
 	for _, metric := range metrics {
 		var value string
 		if metric.MType == domain.Gauge && metric.Value != nil {
@@ -46,5 +46,22 @@ func (s *MetricsSender) SendMetrics(metrics []domain.Metrics) error {
 			zap.Int("status", resp.StatusCode()))
 	}
 
+	return nil
+}
+func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics) error {
+	for _, metric := range metrics {
+		url := fmt.Sprintf("%s/update", s.serverURL)
+		resp, err := s.client.R().SetHeader("Content-Type", "application/json").SetBody(metric).Post(url)
+		if err != nil {
+			zl.Log.Error("failed to send metric",
+				zap.String("metric", metric.ID),
+				zap.Error(err))
+			return err
+		}
+
+		zl.Log.Debug("metric sent",
+			zap.String("metric", metric.ID),
+			zap.Int("status", resp.StatusCode()))
+	}
 	return nil
 }

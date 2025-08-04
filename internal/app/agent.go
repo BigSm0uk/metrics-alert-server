@@ -17,11 +17,11 @@ type Agent struct {
 }
 
 func NewAgent(cfg *config.AgentConfig) *Agent {
-	return &Agent{Cfg: cfg, Collector: agent.NewMetricsCollector(), Sender: agent.NewMetricsSender(cfg.Server)}
+	return &Agent{Cfg: cfg, Collector: agent.NewMetricsCollector(), Sender: agent.NewMetricsSender(cfg.Addr)}
 }
 
 func (a *Agent) Run() error {
-	zl.Log.Info("starting agent", zap.String("Addr", a.Cfg.Addr))
+	zl.Log.Info("starting agent, to send metrics to", zap.String("Addr", a.Cfg.Addr))
 
 	pollTicker := time.NewTicker(time.Duration(a.Cfg.PollInterval) * time.Second)
 	reportTicker := time.NewTicker(time.Duration(a.Cfg.ReportInterval) * time.Second)
@@ -37,7 +37,7 @@ func (a *Agent) Run() error {
 
 		case <-reportTicker.C:
 			metrics := a.Collector.GetMetrics()
-			if err := a.Sender.SendMetrics(metrics); err != nil {
+			if err := a.Sender.SendMetricsV2(metrics); err != nil {
 				zl.Log.Error("failed to send metrics", zap.Error(err))
 			} else {
 				zl.Log.Info("metrics sent", zap.Int("count", len(metrics)))

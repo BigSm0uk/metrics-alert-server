@@ -40,7 +40,13 @@ func MapRoutes(r *chi.Mux, h *handler.MetricHandler) {
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("OK"))
 	})
-	r.Post("/update/{type}/{id}/{value}", h.UpdateMetrics)
+	r.Route("/update", func(r chi.Router) {
+		r.Post("/", h.UpdateMetricByBody)
+		r.Post("/{type}/{id}/{value}", h.UpdateMetricByParam)
+	})
 	r.Get("/", h.GetAllMetrics)
-	r.Get("/value/{type}/{id}", h.GetMetric)
+	r.Route("/value", func(r chi.Router) {
+		r.Post("/", h.GetEnrichMetric)
+		r.Get("/{type}/{id}", h.GetMetric)
+	})
 }

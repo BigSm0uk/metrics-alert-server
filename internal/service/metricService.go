@@ -25,13 +25,13 @@ var (
 func NewService(repository interfaces.MetricsRepository) *MetricService {
 	return &MetricService{repository: repository}
 }
-func (s *MetricService) UpdateMetric(id, t, value string) error {
-	m, err := s.repository.Get(id, t)
+func (s *MetricService) UpdateMetric(id, mType, value string) error {
+	m, err := s.repository.Get(id, mType)
 	//Пока база в памяти реальной ошибки быть не должно
 	if err != nil {
 		m = &domain.Metrics{}
 	}
-	switch t {
+	switch mType {
 	case domain.Counter:
 		v, parseErr := strconv.ParseInt(value, 10, 64)
 		if parseErr != nil {
@@ -41,7 +41,7 @@ func (s *MetricService) UpdateMetric(id, t, value string) error {
 		nv := util.GetDefault(m.Delta) + v
 		err = s.repository.Save(&domain.Metrics{
 			ID:    id,
-			MType: t,
+			MType: mType,
 			Delta: &nv,
 			Hash:  m.Hash,
 		})
@@ -57,7 +57,7 @@ func (s *MetricService) UpdateMetric(id, t, value string) error {
 		}
 		err = s.repository.Save(&domain.Metrics{
 			ID:    id,
-			MType: t,
+			MType: mType,
 			Value: &v,
 			Hash:  m.Hash,
 		})
@@ -67,7 +67,7 @@ func (s *MetricService) UpdateMetric(id, t, value string) error {
 		}
 	}
 
-	zl.Log.Info("updating metric", zap.String("type", t), zap.String("id", id), zap.String("value", value))
+	zl.Log.Info("updating metric", zap.String("type", mType), zap.String("id", id), zap.String("value", value))
 	return nil
 }
 func (s *MetricService) GetAllMetrics() ([]domain.Metrics, error) {
@@ -85,4 +85,7 @@ func (s *MetricService) GetMetric(id, t string) (*domain.Metrics, error) {
 	}
 	zl.Log.Debug("Get metric", zap.String("id", id))
 	return m, nil
+}
+func (s *MetricService) GetEnrichMetric(id, mType string) (*domain.Metrics, error) {
+	return s.repository.Get(id, mType)
 }
