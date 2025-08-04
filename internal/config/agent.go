@@ -9,7 +9,7 @@ import (
 
 type AgentConfig struct {
 	Env            string `env:"ENV"`
-	Addr           string `env:"AGENT_ADDRESS"`
+	Addr           string `env:"ADDRESS"`
 	ReportInterval uint   `env:"REPORT_INTERVAL"`
 	PollInterval   uint   `env:"POLL_INTERVAL"`
 }
