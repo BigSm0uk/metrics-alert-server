@@ -36,7 +36,7 @@ func LoadServerConfig() (*ServerConfig, error) {
 }
 func InitDefaultConfig() *ServerConfig {
 	return &ServerConfig{
-		Addr: ":8080",
+		Addr: "localhost:8080",
 		Storage: S.StorageConfig{
 			Type: "mem",
 		},
