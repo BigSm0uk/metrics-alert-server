@@ -15,10 +15,10 @@ const (
 )
 
 type ServerConfig struct {
-	Env          string          `yaml:"env" env-default:"development"`
+	Env          string          `yaml:"env"  env-default:"development"`
 	Storage      S.StorageConfig `yaml:"storage" required:"true"`
 	TemplatePath string          `yaml:"template_path" env-default:"api/templates/metrics.html"`
-	Addr         string
+	Addr         string          `env:"ADDRESS"`
 }
 
 func LoadServerConfig() (*ServerConfig, error) {
