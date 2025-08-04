@@ -31,7 +31,7 @@ func setupTestServer(t *testing.T) (*httptest.Server, *resty.Client) {
 		r.Post("/{type}/{id}/{value}", h.UpdateMetricByParam)
 	})
 	router.Route("/value", func(r chi.Router) {
-		r.Post("/", h.GetEnrichMetric)
+		r.Post("/", h.EnrichMetric)
 		r.Get("/{type}/{id}", h.GetMetric)
 	})
 

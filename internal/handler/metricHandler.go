@@ -170,34 +170,25 @@ func (h *MetricHandler) GetMetric(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write([]byte(value))
 }
-func (h *MetricHandler) GetEnrichMetric(w http.ResponseWriter, r *http.Request) {
+func (h *MetricHandler) EnrichMetric(w http.ResponseWriter, r *http.Request) {
 	var dto BodyMetric
 
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte("invalid JSON"))
+		json.NewEncoder(w).Encode(err.Error())
 		return
 	}
 
 	if err := dto.Validate(); err != nil {
-		if err == service.ErrMetricNotFound {
-			w.WriteHeader(http.StatusNotFound)
-			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(err.Error()))
-			return
-		}
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(err.Error()))
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(err.Error())
 		return
 	}
 
 	m, err := h.service.GetEnrichMetric(dto.ID, dto.MType)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(err.Error()))
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(err.Error())
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
