@@ -230,7 +230,7 @@ func TestMetricHandler_GetEnrichMetric(t *testing.T) {
 				"id":   "not_found",
 				"type": domain.Gauge,
 			},
-			wantStatus: http.StatusBadRequest,
+			wantStatus: http.StatusNotFound,
 		},
 	}
 
