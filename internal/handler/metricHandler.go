@@ -121,8 +121,16 @@ func (h *MetricHandler) UpdateMetricByBody(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	updatedMetric, err := h.service.GetEnrichMetric(dto.ID, dto.MType)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(updatedMetric)
 }
 func (h *MetricHandler) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
 	m, err := h.service.GetAllMetrics()
