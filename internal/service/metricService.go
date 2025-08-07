@@ -67,7 +67,7 @@ func (s *MetricService) UpdateMetric(id, mType, value string) error {
 		}
 	}
 
-	zl.Log.Info("updating metric", zap.String("type", mType), zap.String("id", id), zap.String("value", value))
+	zl.Log.Debug("updating metric", zap.String("type", mType), zap.String("id", id), zap.String("value", value))
 	return nil
 }
 func (s *MetricService) GetAllMetrics() ([]domain.Metrics, error) {

@@ -203,3 +203,42 @@ func (h *MetricHandler) EnrichMetric(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(m)
 }
+
+func (h *MetricHandler) UpdateMetricsBatch(w http.ResponseWriter, r *http.Request) {
+	var metrics []BodyMetric
+
+	if err := json.NewDecoder(r.Body).Decode(&metrics); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("invalid JSON"))
+		return
+	}
+
+	for _, metric := range metrics {
+		if err := metric.Validate(); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "invalid metric %s: %s", metric.ID, err.Error())
+			return
+		}
+
+		var value string
+		if metric.MType == "gauge" && metric.Value != nil {
+			value = fmt.Sprintf("%g", *metric.Value)
+		} else if metric.MType == "counter" && metric.Delta != nil {
+			value = fmt.Sprintf("%d", *metric.Delta)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "missing value for metric %s", metric.ID)
+			return
+		}
+
+		err := h.service.UpdateMetric(metric.ID, metric.MType, value)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "failed to update metric %s: %s", metric.ID, err.Error())
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Successfully updated %d metrics", len(metrics))
+}

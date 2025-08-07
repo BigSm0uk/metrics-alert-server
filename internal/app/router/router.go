@@ -30,6 +30,8 @@ func NewRouter(h *handler.MetricHandler) *chi.Mux {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.RequestID)
 	r.Use(lm.LoggerMiddleware)
+	r.Use(lm.GzipDecompressMiddleware)
+	r.Use(lm.GzipCompressMiddleware)
 
 	MapRoutes(r, h)
 
@@ -42,6 +44,7 @@ func MapRoutes(r *chi.Mux, h *handler.MetricHandler) {
 	})
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", h.UpdateMetricByBody)
+		r.Post("/batch", h.UpdateMetricsBatch)
 		r.Post("/{type}/{id}/{value}", h.UpdateMetricByParam)
 	})
 	r.Get("/", h.GetAllMetrics)
