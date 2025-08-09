@@ -8,7 +8,7 @@ import (
 )
 
 func TestRun(t *testing.T) {
-	app, err := InitializeApp()
+	app, err := initializeApp()
 
 	require.NoError(t, err)
 	assert.NotNil(t, app)

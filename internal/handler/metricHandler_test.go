@@ -13,6 +13,7 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/internal/config"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/bigsm0uk/metrics-alert-server/internal/repository"
+	"github.com/bigsm0uk/metrics-alert-server/internal/server"
 	"github.com/bigsm0uk/metrics-alert-server/internal/service"
 )
 
@@ -22,7 +23,10 @@ func setupTestServer(t *testing.T) (*httptest.Server, *resty.Client) {
 	r, err := repository.InitRepository(cfg)
 	require.NoError(t, err)
 
-	svc := service.NewService(r)
+	ms, err := server.NewMetricStore(r, &cfg.Store)
+	require.NoError(t, err)
+
+	svc := service.NewService(r, ms)
 	h := NewMetricHandler(svc, cfg.TemplatePath)
 
 	router := chi.NewRouter()

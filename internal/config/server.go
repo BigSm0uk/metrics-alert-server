@@ -7,6 +7,7 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 
 	S "github.com/bigsm0uk/metrics-alert-server/internal/config/storage"
+	Store "github.com/bigsm0uk/metrics-alert-server/internal/config/store"
 )
 
 const (
@@ -15,16 +16,22 @@ const (
 )
 
 type ServerConfig struct {
-	Env          string          `yaml:"env"  env-default:"development"`
-	Storage      S.StorageConfig `yaml:"storage" required:"true"`
-	TemplatePath string          `yaml:"template_path" env-default:"api/templates/metrics.html"`
-	Addr         string          `env:"ADDRESS"`
+	Env          string            `yaml:"env"  env-default:"development"`
+	Storage      S.StorageConfig   `yaml:"storage" required:"true"`
+	TemplatePath string            `yaml:"template_path" env-default:"api/templates/metrics.html"`
+	Addr         string            `env:"ADDRESS"`
+	Store        Store.StoreConfig `required:"true"`
 }
 
 func LoadServerConfig() (*ServerConfig, error) {
 	cfg := &ServerConfig{}
 	path := flag.String("config", "config/config.dev.yaml", "path to config file")
 	flag.StringVar(&cfg.Addr, "a", "localhost:8080", "server address")
+
+	flag.StringVar(&cfg.Store.FileStoragePath, "f", "store.json", "path to store file")
+	flag.BoolVar(&cfg.Store.Restore, "r", true, "restore store from file")
+	flag.StringVar(&cfg.Store.StoreInterval, "i", "300s", "store interval")
+
 	flag.Parse()
 
 	if err := cleanenv.ReadConfig(*path, cfg); err != nil {
@@ -42,5 +49,10 @@ func InitDefaultConfig() *ServerConfig {
 		},
 		TemplatePath: "api/templates/metrics.html",
 		Env:          EnvDevelopment,
+		Store: Store.StoreConfig{
+			FileStoragePath: "store.json",
+			Restore:         false,
+			StoreInterval:   "300s",
+		},
 	}
 }
