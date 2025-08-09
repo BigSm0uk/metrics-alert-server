@@ -37,6 +37,7 @@ func (a *Server) Run() error {
 
 	go func() {
 		zl.Log.Info("starting server", zap.String("Addr", a.cfg.Addr))
+
 		a.Ms.StartProcess()
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			zl.Log.Fatal("failed to start server", zap.Error(err))

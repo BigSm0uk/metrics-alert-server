@@ -22,7 +22,8 @@ type MetricStore struct {
 }
 
 func NewMetricStore(r interfaces.MetricsRepository, cfg *store.StoreConfig) (*MetricStore, error) {
-	interval, err := time.ParseDuration(cfg.StoreInterval)
+
+	interval, err := time.ParseDuration(cfg.StoreInterval + "s")
 	if err != nil {
 		return nil, err
 	}

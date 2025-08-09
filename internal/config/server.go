@@ -30,7 +30,7 @@ func LoadServerConfig() (*ServerConfig, error) {
 
 	flag.StringVar(&cfg.Store.FileStoragePath, "f", "store.json", "path to store file")
 	flag.BoolVar(&cfg.Store.Restore, "r", true, "restore store from file")
-	flag.StringVar(&cfg.Store.StoreInterval, "i", "300s", "store interval")
+	flag.StringVar(&cfg.Store.StoreInterval, "i", "300", "store interval")
 
 	flag.Parse()
 
@@ -52,7 +52,7 @@ func InitDefaultConfig() *ServerConfig {
 		Store: Store.StoreConfig{
 			FileStoragePath: "store.json",
 			Restore:         false,
-			StoreInterval:   "300s",
+			StoreInterval:   "300",
 		},
 	}
 }

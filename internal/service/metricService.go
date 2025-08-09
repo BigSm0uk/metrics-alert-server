@@ -68,7 +68,8 @@ func (s *MetricService) UpdateMetric(id, mType, value string) error {
 			return err
 		}
 	}
-	if s.store != nil && !s.store.IsSyncMode() {
+
+	if s.store != nil && s.store.IsSyncMode() {
 		updatedMetric, _ := s.repository.Get(id, mType)
 		if err := s.store.Sw.WriteMetric(*updatedMetric); err != nil {
 			zl.Log.Error("failed to save metric to store", zap.Error(err))
