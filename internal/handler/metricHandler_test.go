@@ -32,6 +32,7 @@ func setupTestServer(t *testing.T) (*httptest.Server, *resty.Client) {
 	router := chi.NewRouter()
 	router.Route("/update", func(r chi.Router) {
 		r.Post("/", h.UpdateMetricByBody)
+		r.Post("/batch", h.UpdateMetricsBatch)
 		r.Post("/{type}/{id}/{value}", h.UpdateMetricByParam)
 	})
 	router.Route("/value", func(r chi.Router) {
@@ -253,4 +254,193 @@ func TestMetricHandler_GetEnrichMetric(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMetricHandler_UpdateMetricsBatch(t *testing.T) {
+	server, client := setupTestServer(t)
+	defer server.Close()
+
+	tests := []struct {
+		name       string
+		body       interface{}
+		wantStatus int
+		wantBody   string
+	}{
+		{
+			name: "valid batch with mixed metrics",
+			body: []map[string]interface{}{
+				{
+					"id":    "gauge1",
+					"type":  domain.Gauge,
+					"value": 123.45,
+				},
+				{
+					"id":    "counter1",
+					"type":  domain.Counter,
+					"delta": int64(100),
+				},
+				{
+					"id":    "gauge2",
+					"type":  domain.Gauge,
+					"value": 678.90,
+				},
+			},
+			wantStatus: http.StatusOK,
+			wantBody:   "Successfully updated 3 metrics",
+		},
+		{
+			name:       "empty batch",
+			body:       []map[string]interface{}{},
+			wantStatus: http.StatusOK,
+			wantBody:   "Successfully updated 0 metrics",
+		},
+		{
+			name: "single metric in batch",
+			body: []map[string]interface{}{
+				{
+					"id":    "single_gauge",
+					"type":  domain.Gauge,
+					"value": 42.0,
+				},
+			},
+			wantStatus: http.StatusOK,
+			wantBody:   "Successfully updated 1 metrics",
+		},
+		{
+			name:       "invalid json",
+			body:       "invalid json string",
+			wantStatus: http.StatusBadRequest,
+			wantBody:   "invalid JSON",
+		},
+		{
+			name: "batch with invalid metric type",
+			body: []map[string]interface{}{
+				{
+					"id":    "valid_gauge",
+					"type":  domain.Gauge,
+					"value": 123.45,
+				},
+				{
+					"id":    "invalid_metric",
+					"type":  "invalid_type",
+					"value": 456.78,
+				},
+			},
+			wantStatus: http.StatusBadRequest,
+			wantBody:   "invalid metric invalid_metric: invalid metric type",
+		},
+		{
+			name: "batch with missing value for gauge",
+			body: []map[string]interface{}{
+				{
+					"id":   "missing_value",
+					"type": domain.Gauge,
+					// missing value field
+				},
+			},
+			wantStatus: http.StatusBadRequest,
+			wantBody:   "missing value for metric missing_value",
+		},
+		{
+			name: "batch with missing delta for counter",
+			body: []map[string]interface{}{
+				{
+					"id":   "missing_delta",
+					"type": domain.Counter,
+					// missing delta field
+				},
+			},
+			wantStatus: http.StatusBadRequest,
+			wantBody:   "missing value for metric missing_delta",
+		},
+		{
+			name: "batch with empty metric id",
+			body: []map[string]interface{}{
+				{
+					"id":    "",
+					"type":  domain.Gauge,
+					"value": 123.45,
+				},
+			},
+			wantStatus: http.StatusBadRequest,
+			wantBody:   "invalid metric : metric not found",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp, err := client.R().
+				SetHeader("Content-Type", "application/json").
+				SetBody(tt.body).
+				Post("/update/batch")
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantStatus, resp.StatusCode())
+
+			if tt.wantBody != "" {
+				assert.Contains(t, string(resp.Body()), tt.wantBody)
+			}
+		})
+	}
+}
+
+func TestMetricHandler_UpdateMetricsBatch_Integration(t *testing.T) {
+	server, client := setupTestServer(t)
+	defer server.Close()
+
+	// Send batch update
+	batchPayload := []map[string]interface{}{
+		{
+			"id":    "cpu_usage",
+			"type":  domain.Gauge,
+			"value": 85.5,
+		},
+		{
+			"id":    "requests_total",
+			"type":  domain.Counter,
+			"delta": int64(150),
+		},
+	}
+
+	resp, err := client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(batchPayload).
+		Post("/update/batch")
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode())
+
+	// Verify the metrics were actually saved by retrieving them
+	gaugeResp, err := client.R().Get("/value/gauge/cpu_usage")
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, gaugeResp.StatusCode())
+	assert.Equal(t, "85.5", string(gaugeResp.Body()))
+
+	counterResp, err := client.R().Get("/value/counter/requests_total")
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, counterResp.StatusCode())
+	assert.Equal(t, "150", string(counterResp.Body()))
+
+	// Send another batch to test counter accumulation
+	secondBatch := []map[string]interface{}{
+		{
+			"id":    "requests_total",
+			"type":  domain.Counter,
+			"delta": int64(50),
+		},
+	}
+
+	resp2, err := client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(secondBatch).
+		Post("/update/batch")
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp2.StatusCode())
+
+	// Verify counter was incremented
+	counterResp2, err := client.R().Get("/value/counter/requests_total")
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, counterResp2.StatusCode())
+	assert.Equal(t, "200", string(counterResp2.Body())) // 150 + 50
 }

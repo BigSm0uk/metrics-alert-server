@@ -53,6 +53,12 @@ func (s *MetricsSender) SendMetricsV1(metrics []domain.Metrics) error {
 	return nil
 }
 func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics) error {
+
+	if len(metrics) == 0 {
+		zl.Log.Debug("no metrics to send, skipping")
+		return nil
+	}
+
 	compressedData, err := util.CompressJSON(metrics)
 	if err != nil {
 		zl.Log.Error("failed to compress metrics", zap.Error(err))
