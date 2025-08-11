@@ -24,7 +24,7 @@ func setupTestServer(t *testing.T) (*httptest.Server, *resty.Client) {
 	r, err := repository.InitRepository(cfg)
 	require.NoError(t, err)
 
-	ms, err := store.NewJsonStore(r, &cfg.Store)
+	ms, err := store.NewJSONStore(r, &cfg.Store)
 	require.NoError(t, err)
 
 	svc := service.NewService(r, ms)

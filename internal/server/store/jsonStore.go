@@ -16,7 +16,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type JsonStore struct {
+type JSONStore struct {
 	r   interfaces.MetricsRepository
 	cfg *store.StoreConfig
 
@@ -26,9 +26,9 @@ type JsonStore struct {
 	stopChan      chan struct{}
 }
 
-var _ interfaces.MetricsStore = (*JsonStore)(nil)
+var _ interfaces.MetricsStore = (*JSONStore)(nil)
 
-func NewJsonStore(r interfaces.MetricsRepository, cfg *store.StoreConfig) (*JsonStore, error) {
+func NewJSONStore(r interfaces.MetricsRepository, cfg *store.StoreConfig) (*JSONStore, error) {
 	interval, err := time.ParseDuration(cfg.StoreInterval + "s")
 	if err != nil {
 		return nil, err
@@ -36,7 +36,7 @@ func NewJsonStore(r interfaces.MetricsRepository, cfg *store.StoreConfig) (*Json
 
 	syncMode := interval == 0
 
-	ms := &JsonStore{
+	ms := &JSONStore{
 		r:             r,
 		cfg:           cfg,
 		storeInterval: interval,
@@ -47,16 +47,16 @@ func NewJsonStore(r interfaces.MetricsRepository, cfg *store.StoreConfig) (*Json
 
 	return ms, nil
 }
-func (s *JsonStore) StartProcess() {
+func (s *JSONStore) StartProcess() {
 	if s.syncMode {
 		return
 	}
 	s.startPeriodicSave()
 }
-func (s *JsonStore) IsSyncMode() bool {
+func (s *JSONStore) IsSyncMode() bool {
 	return s.syncMode
 }
-func (s *JsonStore) startPeriodicSave() {
+func (s *JSONStore) startPeriodicSave() {
 	s.ticker = time.NewTicker(s.storeInterval)
 	go func() {
 		for {
@@ -71,7 +71,7 @@ func (s *JsonStore) startPeriodicSave() {
 		}
 	}()
 }
-func (s *JsonStore) WriteMetric(metric domain.Metrics) error {
+func (s *JSONStore) WriteMetric(metric domain.Metrics) error {
 	file, err := os.OpenFile(s.cfg.FileStoragePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		zl.Log.Error("failed to open file for write", zap.Error(err), zap.String("filePath", s.cfg.FileStoragePath))
@@ -90,7 +90,7 @@ func (s *JsonStore) WriteMetric(metric domain.Metrics) error {
 
 	return nil
 }
-func (s *JsonStore) SaveAllMetrics() error {
+func (s *JSONStore) SaveAllMetrics() error {
 	metrics, err := s.r.GetAll()
 	if err != nil {
 		return err
@@ -115,7 +115,7 @@ func (s *JsonStore) SaveAllMetrics() error {
 	return nil
 }
 
-func (s *JsonStore) Restore() error {
+func (s *JSONStore) Restore() error {
 	file, err := os.Open(s.cfg.FileStoragePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -152,7 +152,7 @@ func (s *JsonStore) Restore() error {
 	zl.Log.Info("successfully restored metrics", zap.Int("count", count))
 	return nil
 }
-func (s *JsonStore) Close() error {
+func (s *JSONStore) Close() error {
 	if s.ticker != nil {
 		s.ticker.Stop()
 		close(s.stopChan)
