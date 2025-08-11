@@ -53,6 +53,7 @@ func InitDefaultConfig() *ServerConfig {
 			FileStoragePath: "store.json",
 			Restore:         false,
 			StoreInterval:   "300",
+			SFormat:         "json",
 		},
 	}
 }

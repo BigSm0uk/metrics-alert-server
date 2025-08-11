@@ -14,16 +14,16 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/config"
 	"github.com/bigsm0uk/metrics-alert-server/internal/handler"
-	"github.com/bigsm0uk/metrics-alert-server/internal/server"
+	"github.com/bigsm0uk/metrics-alert-server/internal/interfaces"
 )
 
 type Server struct {
 	cfg *config.ServerConfig
 	h   *handler.MetricHandler
-	Ms  *server.MetricStore
+	Ms  interfaces.MetricsStore
 }
 
-func NewServer(cfg *config.ServerConfig, h *handler.MetricHandler, ms *server.MetricStore) *Server {
+func NewServer(cfg *config.ServerConfig, h *handler.MetricHandler, ms interfaces.MetricsStore) *Server {
 	return &Server{cfg: cfg, h: h, Ms: ms}
 }
 

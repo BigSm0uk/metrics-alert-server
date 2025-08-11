@@ -9,13 +9,12 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/bigsm0uk/metrics-alert-server/internal/interfaces"
-	"github.com/bigsm0uk/metrics-alert-server/internal/server"
 	"github.com/bigsm0uk/metrics-alert-server/pkg/util"
 )
 
 type MetricService struct {
 	repository interfaces.MetricsRepository
-	store      *server.MetricStore
+	store      interfaces.MetricsStore
 }
 
 var (
@@ -24,7 +23,7 @@ var (
 	ErrInvalidMetricValue = errors.New("invalid metric value")
 )
 
-func NewService(repository interfaces.MetricsRepository, store *server.MetricStore) *MetricService {
+func NewService(repository interfaces.MetricsRepository, store interfaces.MetricsStore) *MetricService {
 	return &MetricService{repository: repository, store: store}
 }
 func (s *MetricService) UpdateMetric(id, mType, value string) error {
@@ -71,7 +70,7 @@ func (s *MetricService) UpdateMetric(id, mType, value string) error {
 
 	if s.store != nil && s.store.IsSyncMode() {
 		updatedMetric, _ := s.repository.Get(id, mType)
-		if err := s.store.Sw.WriteMetric(*updatedMetric); err != nil {
+		if err := s.store.WriteMetric(*updatedMetric); err != nil {
 			zl.Log.Error("failed to save metric to store", zap.Error(err))
 			return err
 		}
