@@ -49,7 +49,7 @@ func NewJSONStore(r interfaces.MetricsRepository, cfg *store.StoreConfig) (*JSON
 	return ms, nil
 }
 func (s *JSONStore) StartProcess(ctx context.Context) {
-	if s.syncMode {
+	if !s.IsActive() || s.syncMode {
 		return
 	}
 	s.startPeriodicSave(ctx)
