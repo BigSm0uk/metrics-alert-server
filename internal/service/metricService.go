@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"strconv"
 
@@ -26,8 +27,8 @@ var (
 func NewService(repository interfaces.MetricsRepository, store interfaces.MetricsStore) *MetricService {
 	return &MetricService{repository: repository, store: store}
 }
-func (s *MetricService) UpdateMetric(id, mType, value string) error {
-	m, err := s.repository.Get(id, mType)
+func (s *MetricService) UpdateMetric(ctx context.Context, id, mType, value string) error {
+	m, err := s.repository.Get(ctx, id, mType)
 	//Пока база в памяти реальной ошибки быть не должно
 	if err != nil {
 		m = &domain.Metrics{}
@@ -40,7 +41,7 @@ func (s *MetricService) UpdateMetric(id, mType, value string) error {
 			return ErrInvalidMetricValue
 		}
 		nv := util.GetDefault(m.Delta) + v
-		err = s.repository.Save(&domain.Metrics{
+		err = s.repository.Save(ctx, &domain.Metrics{
 			ID:    id,
 			MType: mType,
 			Delta: &nv,
@@ -56,7 +57,7 @@ func (s *MetricService) UpdateMetric(id, mType, value string) error {
 			zl.Log.Error("invalid gauge value", zap.String("value", value), zap.Error(parseErr))
 			return ErrInvalidMetricValue
 		}
-		err = s.repository.Save(&domain.Metrics{
+		err = s.repository.Save(ctx, &domain.Metrics{
 			ID:    id,
 			MType: mType,
 			Value: &v,
@@ -69,7 +70,7 @@ func (s *MetricService) UpdateMetric(id, mType, value string) error {
 	}
 
 	if s.store != nil && s.store.IsSyncMode() {
-		updatedMetric, _ := s.repository.Get(id, mType)
+		updatedMetric, _ := s.repository.Get(ctx, id, mType)
 		if err := s.store.WriteMetric(*updatedMetric); err != nil {
 			zl.Log.Error("failed to save metric to store", zap.Error(err))
 			return err
@@ -79,22 +80,25 @@ func (s *MetricService) UpdateMetric(id, mType, value string) error {
 	zl.Log.Debug("updating metric", zap.String("type", mType), zap.String("id", id), zap.String("value", value))
 	return nil
 }
-func (s *MetricService) GetAllMetrics() ([]domain.Metrics, error) {
-	m, err := s.repository.GetAll()
+func (s *MetricService) GetAllMetrics(ctx context.Context) ([]domain.Metrics, error) {
+	m, err := s.repository.GetAll(ctx)
 	if err != nil {
 		return nil, err
 	}
 	zl.Log.Debug("Total metrics", zap.Int("len", len(m)))
 	return m, nil
 }
-func (s *MetricService) GetMetric(id, t string) (*domain.Metrics, error) {
-	m, err := s.repository.Get(id, t)
+func (s *MetricService) GetMetric(ctx context.Context, id, t string) (*domain.Metrics, error) {
+	m, err := s.repository.Get(ctx, id, t)
 	if err != nil {
 		return nil, err
 	}
 	zl.Log.Debug("Get metric", zap.String("id", id))
 	return m, nil
 }
-func (s *MetricService) GetEnrichMetric(id, mType string) (*domain.Metrics, error) {
-	return s.repository.Get(id, mType)
+func (s *MetricService) GetEnrichMetric(ctx context.Context, id, mType string) (*domain.Metrics, error) {
+	return s.repository.Get(ctx, id, mType)
+}
+func (s *MetricService) Ping(ctx context.Context) error {
+	return s.repository.Ping(ctx)
 }

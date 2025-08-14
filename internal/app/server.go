@@ -38,7 +38,8 @@ func (a *Server) Run() error {
 	go func() {
 		zl.Log.Info("starting server", zap.String("Addr", a.cfg.Addr))
 
-		a.Ms.StartProcess()
+		ctx := context.Background()
+		a.Ms.StartProcess(ctx)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			zl.Log.Fatal("failed to start server", zap.Error(err))
 		}
@@ -52,7 +53,7 @@ func (a *Server) Run() error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := a.Ms.Close(); err != nil {
+	if err := a.Ms.Close(ctx); err != nil {
 		zl.Log.Error("failed to close metric store", zap.Error(err))
 		return err
 	}

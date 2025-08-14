@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -15,12 +16,12 @@ func TestMemRepository_Get(t *testing.T) {
 		t  string
 	}
 	r := NewMemRepository(storage.NewMemStorage())
-	r.Save(&domain.Metrics{
+	r.Save(context.Background(), &domain.Metrics{
 		ID:    "Alloc",
 		MType: domain.Gauge,
 		Value: float64ptr(1024),
 	})
-	r.Save(&domain.Metrics{
+	r.Save(context.Background(), &domain.Metrics{
 		ID:    "PollCount",
 		MType: domain.Counter,
 		Delta: int64ptr(5),
@@ -74,7 +75,7 @@ func TestMemRepository_Get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.r.Get(tt.args.id, tt.args.t)
+			got, err := tt.r.Get(context.Background(), tt.args.id, tt.args.t)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
@@ -130,7 +131,7 @@ func TestMemRepository_Save(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.r.Save(tt.args.metric)
+			err := tt.r.Save(context.Background(), tt.args.metric)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
@@ -173,7 +174,7 @@ func TestMemRepository_GetAll(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.r.GetAll()
+			got, err := tt.r.GetAll(context.Background())
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
@@ -230,9 +231,9 @@ func TestMemRepository_Delete(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.r.Delete(tt.args.id)
+			err := tt.r.Delete(context.Background(), tt.args.id)
 			require.NoError(t, err)
-			got, _ := tt.r.GetAll()
+			got, _ := tt.r.GetAll(context.Background())
 			require.ElementsMatch(t, tt.want, got)
 		})
 	}
@@ -248,7 +249,7 @@ func createRepoWithData() *MemRepository {
 		MType: domain.Counter,
 		Delta: int64ptr(5),
 	}
-	r.Save(a)
-	r.Save(p)
+	r.Save(context.Background(), a)
+	r.Save(context.Background(), p)
 	return r
 }

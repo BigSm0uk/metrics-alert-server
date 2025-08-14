@@ -52,4 +52,5 @@ func MapRoutes(r *chi.Mux, h *handler.MetricHandler) {
 		r.Post("/", h.EnrichMetric)
 		r.Get("/{type}/{id}", h.GetMetric)
 	})
+	r.Get("/ping", h.Ping)
 }

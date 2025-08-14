@@ -10,12 +10,13 @@ GOLANGCI_LINT := $(GOPATH)/bin/golangci-lint
 # Directories 
 SERVER_DIR := cmd/server
 AGENT_DIR := cmd/agent
+DEPLOY_DIR := deploy
 
 # Binary names
 SERVER_BIN := $(SERVER_DIR)/server
 AGENT_BIN := $(AGENT_DIR)/agent
 
-.PHONY: all fmt lint vet test build clean install-tools help
+.PHONY: all fmt lint vet test build clean install-tools help docker-up docker-down
 
 # Default target
 all: build
@@ -90,6 +91,18 @@ install-tools:
 	@echo "[+] Please ensure that $(GOPATH)/bin is in your PATH"
 	@echo "[+] Current GOPATH: $(GOPATH)"
 
+# Docker Compose commands
+docker-up:
+	@echo "[+] Starting development environment..."
+	@cd $(DEPLOY_DIR) && docker-compose -f docker-compose.dev.yaml up -d
+	@echo "[+] Development environment started"
+
+docker-down:
+	@echo "[+] Stopping development environment..."
+	@cd $(DEPLOY_DIR) && docker-compose -f docker-compose.dev.yaml down
+	@echo "[+] Development environment stopped"
+
+
 # Show help
 help:
 	@echo "Available commands:"
@@ -104,3 +117,5 @@ help:
 	@echo "  make run-agent    - Build and run agent"
 	@echo "  make clean        - Remove build artifacts"
 	@echo "  make install-tools - Install required development tools"
+	@echo "  make docker-up    - Start development environment (PostgreSQL)"
+	@echo "  make docker-down  - Stop development environment"

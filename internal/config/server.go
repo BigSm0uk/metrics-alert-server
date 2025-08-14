@@ -32,6 +32,8 @@ func LoadServerConfig() (*ServerConfig, error) {
 	flag.BoolVar(&cfg.Store.Restore, "r", true, "restore store from file")
 	flag.StringVar(&cfg.Store.StoreInterval, "i", "300", "store interval")
 
+	flag.StringVar(&cfg.Storage.ConnectionString, "d", "", "database connection string")
+
 	flag.Parse()
 
 	if err := cleanenv.ReadConfig(*path, cfg); err != nil {

@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-resty/resty/v2"
@@ -20,8 +22,10 @@ import (
 
 func setupTestServer(t *testing.T) (*httptest.Server, *resty.Client) {
 	cfg := config.InitDefaultConfig()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
-	r, err := repository.InitRepository(cfg)
+	r, err := repository.InitRepository(ctx, cfg)
 	require.NoError(t, err)
 
 	ms, err := store.NewJSONStore(r, &cfg.Store)

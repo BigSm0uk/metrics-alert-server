@@ -33,6 +33,17 @@ func (m *MemStorage) Get(id, t string) (domain.Metrics, bool) {
 	}
 	return metric, ok
 }
+func (m *MemStorage) GetByType(metricType string) []domain.Metrics {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	result := make([]domain.Metrics, 0, len(m.db))
+	for _, v := range m.db {
+		if v.MType == metricType {
+			result = append(result, v)
+		}
+	}
+	return result
+}
 
 func (m *MemStorage) GetAll() []domain.Metrics {
 	m.mu.RLock()

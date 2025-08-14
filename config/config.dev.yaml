@@ -1,4 +1,6 @@
 env: "development"
 storage:
-  type: "mem"
+  type: "postgres"
+  connection_string: "host=localhost port=5432 user=metrics_user password=metrics_password dbname=metrics_dev sslmode=disable"
+
 template_path: "api/templates/metrics.html"

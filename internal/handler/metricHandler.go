@@ -55,11 +55,14 @@ func initializeTemplate(path string) *template.Template {
 }
 
 func (h *MetricHandler) UpdateMetricByParam(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	dto := &ParamMetric{
 		ID:    chi.URLParam(r, "id"),
 		MType: chi.URLParam(r, "type"),
 		Value: chi.URLParam(r, "value"),
 	}
+
 	if err := dto.Validate(); err != nil {
 		if err == service.ErrMetricNotFound {
 			w.WriteHeader(http.StatusNotFound)
@@ -73,7 +76,7 @@ func (h *MetricHandler) UpdateMetricByParam(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	err := h.service.UpdateMetric(dto.ID, dto.MType, dto.Value)
+	err := h.service.UpdateMetric(ctx, dto.ID, dto.MType, dto.Value)
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -84,6 +87,8 @@ func (h *MetricHandler) UpdateMetricByParam(w http.ResponseWriter, r *http.Reque
 	w.Write([]byte("Metric updated"))
 }
 func (h *MetricHandler) UpdateMetricByBody(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	var dto BodyMetric
 
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
@@ -114,14 +119,14 @@ func (h *MetricHandler) UpdateMetricByBody(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err := h.service.UpdateMetric(dto.ID, dto.MType, value)
+	err := h.service.UpdateMetric(ctx, dto.ID, dto.MType, value)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
 		return
 	}
 
-	updatedMetric, err := h.service.GetEnrichMetric(dto.ID, dto.MType)
+	updatedMetric, err := h.service.GetEnrichMetric(ctx, dto.ID, dto.MType)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
@@ -133,7 +138,9 @@ func (h *MetricHandler) UpdateMetricByBody(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(updatedMetric)
 }
 func (h *MetricHandler) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
-	m, err := h.service.GetAllMetrics()
+	ctx := r.Context()
+
+	m, err := h.service.GetAllMetrics(ctx)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -148,6 +155,8 @@ func (h *MetricHandler) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func (h *MetricHandler) GetMetric(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	dto := &GetMetricDTO{
 		ID:   chi.URLParam(r, "id"),
 		Type: chi.URLParam(r, "type"),
@@ -163,7 +172,7 @@ func (h *MetricHandler) GetMetric(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	m, err := h.service.GetMetric(dto.ID, dto.Type)
+	m, err := h.service.GetMetric(ctx, dto.ID, dto.Type)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -179,6 +188,8 @@ func (h *MetricHandler) GetMetric(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(value))
 }
 func (h *MetricHandler) EnrichMetric(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	var dto BodyMetric
 
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
@@ -193,7 +204,7 @@ func (h *MetricHandler) EnrichMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	m, err := h.service.GetEnrichMetric(dto.ID, dto.MType)
+	m, err := h.service.GetEnrichMetric(ctx, dto.ID, dto.MType)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		json.NewEncoder(w).Encode(err.Error())
@@ -205,6 +216,8 @@ func (h *MetricHandler) EnrichMetric(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *MetricHandler) UpdateMetricsBatch(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	var metrics []BodyMetric
 
 	if err := json.NewDecoder(r.Body).Decode(&metrics); err != nil {
@@ -231,7 +244,7 @@ func (h *MetricHandler) UpdateMetricsBatch(w http.ResponseWriter, r *http.Reques
 			return
 		}
 
-		err := h.service.UpdateMetric(metric.ID, metric.MType, value)
+		err := h.service.UpdateMetric(ctx, metric.ID, metric.MType, value)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, "failed to update metric %s: %s", metric.ID, err.Error())
@@ -241,4 +254,16 @@ func (h *MetricHandler) UpdateMetricsBatch(w http.ResponseWriter, r *http.Reques
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Successfully updated %d metrics", len(metrics))
+}
+func (h *MetricHandler) Ping(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	err := h.service.Ping(ctx)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Database connection failed"))
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("pong"))
 }
