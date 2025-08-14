@@ -9,18 +9,19 @@ CREATE TABLE IF NOT EXISTS metrics (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     
-    PRIMARY KEY (id, type),
-    
-    INDEX idx_metrics_type (type),
-    INDEX idx_metrics_updated_at (updated_at),
-    
-    CONSTRAINT chk_counter_has_delta CHECK (
-        (type = 'counter' AND delta IS NOT NULL) OR type != 'counter'
-    ),
-    CONSTRAINT chk_gauge_has_value CHECK (
-        (type = 'gauge' AND value IS NOT NULL) OR type != 'gauge'
-    )
+    PRIMARY KEY (id, type)
 );
+
+-- Создаем индексы отдельно
+CREATE INDEX IF NOT EXISTS idx_metrics_type ON metrics(type);
+CREATE INDEX IF NOT EXISTS idx_metrics_updated_at ON metrics(updated_at);
+
+-- Добавляем ограничения
+ALTER TABLE metrics ADD CONSTRAINT chk_counter_has_delta 
+    CHECK ((type = 'counter' AND delta IS NOT NULL) OR type != 'counter');
+
+ALTER TABLE metrics ADD CONSTRAINT chk_gauge_has_value 
+    CHECK ((type = 'gauge' AND value IS NOT NULL) OR type != 'gauge');
 
 -- Комментарии для документации
 COMMENT ON TABLE metrics IS 'Таблица для хранения метрик приложения';

@@ -167,3 +167,6 @@ func (s *JSONStore) Close(ctx context.Context) error {
 	zl.Log.Info("store closed successfully")
 	return nil
 }
+func (s *JSONStore) IsActive() bool {
+	return s.cfg.UseStore
+}

@@ -11,12 +11,21 @@ GOLANGCI_LINT := $(GOPATH)/bin/golangci-lint
 SERVER_DIR := cmd/server
 AGENT_DIR := cmd/agent
 DEPLOY_DIR := deploy
+MIGRATIONS_DIR := migrations
 
 # Binary names
 SERVER_BIN := $(SERVER_DIR)/server
 AGENT_BIN := $(AGENT_DIR)/agent
 
-.PHONY: all fmt lint vet test build clean install-tools help docker-up docker-down
+# Database configuration
+DB_HOST := localhost
+DB_PORT := 5432
+DB_USER := metrics_user
+DB_PASSWORD := metrics_password
+DB_NAME := metrics_dev
+DATABASE_URL := postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable
+
+.PHONY: all fmt lint vet test build clean install-tools help docker-up docker-down migrate-up migrate-down migrate-status migrate-create
 
 # Default target
 all: build
@@ -87,6 +96,7 @@ install-tools:
 	@echo "[+] Installing required tools..."
 	$(GO) install golang.org/x/tools/cmd/goimports@latest
 	$(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	$(GO) install github.com/pressly/goose/v3/cmd/goose@latest
 	@echo "[+] Tools installation complete."
 	@echo "[+] Please ensure that $(GOPATH)/bin is in your PATH"
 	@echo "[+] Current GOPATH: $(GOPATH)"
@@ -102,6 +112,30 @@ docker-down:
 	@cd $(DEPLOY_DIR) && docker-compose -f docker-compose.dev.yaml down
 	@echo "[+] Development environment stopped"
 
+# Database migrations with Goose
+migrate-up:
+	@echo "[+] Running database migrations up..."
+	@goose -dir $(MIGRATIONS_DIR) postgres "$(DATABASE_URL)" up
+
+migrate-down:
+	@echo "[+] Rolling back database migrations..."
+	@goose -dir $(MIGRATIONS_DIR) postgres "$(DATABASE_URL)" down
+
+migrate-status:
+	@echo "[+] Checking migration status..."
+	@goose -dir $(MIGRATIONS_DIR) postgres "$(DATABASE_URL)" status
+
+migrate-create:
+	@if [ -z "$(NAME)" ]; then \
+		echo "Usage: make migrate-create NAME=migration_name"; \
+		exit 1; \
+	fi
+	@echo "[+] Creating new migration: $(NAME)..."
+	@goose -dir $(MIGRATIONS_DIR) create $(NAME) sql
+
+migrate-reset:
+	@echo "[+] Resetting database (DOWN all + UP all)..."
+	@goose -dir $(MIGRATIONS_DIR) postgres "$(DATABASE_URL)" reset
 
 # Show help
 help:
@@ -119,3 +153,8 @@ help:
 	@echo "  make install-tools - Install required development tools"
 	@echo "  make docker-up    - Start development environment (PostgreSQL)"
 	@echo "  make docker-down  - Stop development environment"
+	@echo "  make migrate-up   - Run database migrations"
+	@echo "  make migrate-down - Rollback database migrations"
+	@echo "  make migrate-status - Check migration status"
+	@echo "  make migrate-create NAME=name - Create new migration"
+	@echo "  make migrate-reset - Reset database (down all + up all)"

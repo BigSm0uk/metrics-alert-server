@@ -13,6 +13,9 @@ import (
 const (
 	EnvDevelopment = "development"
 	EnvProduction  = "production"
+
+	StorageTypeMem      = "mem"
+	StorageTypePostgres = "postgres"
 )
 
 type ServerConfig struct {
@@ -41,7 +44,13 @@ func LoadServerConfig() (*ServerConfig, error) {
 		cfg = InitDefaultConfig()
 	}
 
+	cfg.Store.UseStore = cfg.isActiveStore()
+
 	return cfg, nil
+}
+func (s *ServerConfig) isActiveStore() bool {
+	return s.Storage.Type != StorageTypePostgres && s.Store.FileStoragePath != ""
+
 }
 func InitDefaultConfig() *ServerConfig {
 	return &ServerConfig{
@@ -52,10 +61,7 @@ func InitDefaultConfig() *ServerConfig {
 		TemplatePath: "api/templates/metrics.html",
 		Env:          EnvDevelopment,
 		Store: Store.StoreConfig{
-			FileStoragePath: "store.json",
-			Restore:         false,
-			StoreInterval:   "300",
-			SFormat:         "json",
+			UseStore: false,
 		},
 	}
 }

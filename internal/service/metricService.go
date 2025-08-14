@@ -69,7 +69,7 @@ func (s *MetricService) UpdateMetric(ctx context.Context, id, mType, value strin
 		}
 	}
 
-	if s.store != nil && s.store.IsSyncMode() {
+	if s.store != nil && s.store.IsActive() && s.store.IsSyncMode() {
 		updatedMetric, _ := s.repository.Get(ctx, id, mType)
 		if err := s.store.WriteMetric(*updatedMetric); err != nil {
 			zl.Log.Error("failed to save metric to store", zap.Error(err))

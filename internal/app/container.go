@@ -84,7 +84,7 @@ func (c *Container) InitHandler() *Container {
 func (c *Container) RestoreData() *Container {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	if c.config.Store.Restore {
+	if c.config.Store.Restore && c.store.IsActive() {
 		if err := c.store.Restore(ctx); err != nil && err != io.EOF {
 			panic(err)
 		}

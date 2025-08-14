@@ -20,6 +20,7 @@ type MetricsRepository interface {
 }
 type MetricsStore interface {
 	StartProcess(ctx context.Context)
+	IsActive() bool
 	IsSyncMode() bool
 	Close(ctx context.Context) error
 	Restore(ctx context.Context) error
