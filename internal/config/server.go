@@ -61,7 +61,9 @@ func InitDefaultConfig() *ServerConfig {
 		TemplatePath: "api/templates/metrics.html",
 		Env:          EnvDevelopment,
 		Store: Store.StoreConfig{
-			UseStore: false,
+			UseStore:      false,
+			StoreInterval: "300",
+			SFormat:       "json",
 		},
 	}
 }

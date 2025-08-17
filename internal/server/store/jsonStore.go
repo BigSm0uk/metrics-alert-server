@@ -158,10 +158,11 @@ func (s *JSONStore) Close(ctx context.Context) error {
 		s.ticker.Stop()
 		close(s.stopChan)
 	}
-
-	if err := s.SaveAllMetrics(ctx); err != nil {
-		zl.Log.Error("failed to save metrics during close", zap.Error(err))
-		return err
+	if s.IsActive() {
+		if err := s.SaveAllMetrics(ctx); err != nil {
+			zl.Log.Error("failed to save metrics during close", zap.Error(err))
+			return err
+		}
 	}
 
 	zl.Log.Info("store closed successfully")

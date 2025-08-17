@@ -37,44 +37,36 @@ func NewPostgresRepository(ctx context.Context, cfg *storage.StorageConfig) (*Po
 	return &PostgresRepository{pool: pool}, nil
 }
 
-// Save сохраняет метрику в базу данных (UPSERT операция)
 func (r *PostgresRepository) Save(ctx context.Context, metric *domain.Metrics) error {
 
 	return fmt.Errorf("not implemented")
 }
 
-// Get получает метрику по ID и типу
 func (r *PostgresRepository) Get(ctx context.Context, id, metricType string) (*domain.Metrics, error) {
 
 	return nil, fmt.Errorf("not implemented")
 }
 
-// GetAll получает все метрики
 func (r *PostgresRepository) GetAll(ctx context.Context) ([]domain.Metrics, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
-// Delete удаляет метрику по ID
 func (r *PostgresRepository) Delete(ctx context.Context, id string) error {
 	return fmt.Errorf("not implemented")
 }
 
-// SaveBatch сохраняет множество метрик за одну транзакцию
 func (r *PostgresRepository) SaveBatch(ctx context.Context, metrics []domain.Metrics) error {
 	return fmt.Errorf("not implemented")
 }
 
-// GetByType получает все метрики определенного типа
 func (r *PostgresRepository) GetByType(ctx context.Context, metricType string) ([]domain.Metrics, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
-// Ping проверяет соединение с базой данных
 func (r *PostgresRepository) Ping(ctx context.Context) error {
 	return r.pool.Ping(ctx)
 }
 
-// Close закрывает пул соединений
 func (r *PostgresRepository) Close() error {
 	r.pool.Close()
 	return nil

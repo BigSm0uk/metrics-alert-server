@@ -44,8 +44,10 @@ func MapRoutes(r *chi.Mux, h *handler.MetricHandler) {
 	})
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", h.UpdateMetricByBody)
-		r.Post("/batch", h.UpdateMetricsBatch)
 		r.Post("/{type}/{id}/{value}", h.UpdateMetricByParam)
+	})
+	r.Route("/updates", func(r chi.Router) {
+		r.Post("/", h.UpdateMetricsBatch)
 	})
 	r.Get("/", h.GetAllMetrics)
 	r.Route("/value", func(r chi.Router) {

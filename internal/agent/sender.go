@@ -65,7 +65,7 @@ func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics) error {
 		return err
 	}
 
-	url := fmt.Sprintf("%s/update/batch", s.serverURL)
+	url := fmt.Sprintf("%s/updates", s.serverURL)
 	resp, err := s.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Content-Encoding", "gzip").
