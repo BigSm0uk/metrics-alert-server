@@ -23,35 +23,6 @@ func NewMetricsSender(serverURL string) *MetricsSender {
 	}
 }
 
-func (s *MetricsSender) SendMetricsV1(metrics []domain.Metrics) error {
-	for _, metric := range metrics {
-		var value string
-		if metric.MType == domain.Gauge && metric.Value != nil {
-			value = fmt.Sprintf("%g", *metric.Value)
-		} else if metric.MType == domain.Counter && metric.Delta != nil {
-			value = fmt.Sprintf("%d", *metric.Delta)
-		}
-
-		url := fmt.Sprintf("%s/update/%s/%s/%s", s.serverURL, metric.MType, metric.ID, value)
-
-		resp, err := s.client.R().
-			SetHeader("Content-Type", "text/plain").
-			SetHeader("Accept-Encoding", "gzip").
-			Post(url)
-		if err != nil {
-			zl.Log.Error("failed to send metric",
-				zap.String("metric", metric.ID),
-				zap.Error(err))
-			return err
-		}
-
-		zl.Log.Debug("metric sent",
-			zap.String("metric", metric.ID),
-			zap.Int("status", resp.StatusCode()))
-	}
-
-	return nil
-}
 func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics) error {
 
 	if len(metrics) == 0 {
