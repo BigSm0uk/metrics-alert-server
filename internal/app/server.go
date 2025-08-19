@@ -57,6 +57,10 @@ func (a *Server) Run() error {
 		zl.Log.Error("failed to close metric store", zap.Error(err))
 		return err
 	}
+	if err := a.h.Close(); err != nil {
+		zl.Log.Error("failed to close metric handler", zap.Error(err))
+		return err
+	}
 
 	if err := srv.Shutdown(ctx); err != nil {
 		zl.Log.Error("server forced to shutdown", zap.Error(err))

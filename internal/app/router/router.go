@@ -55,4 +55,13 @@ func MapRoutes(r *chi.Mux, h *handler.MetricHandler) {
 		r.Get("/{type}/{id}", h.GetMetric)
 	})
 	r.Get("/ping", h.Ping)
+
+	r.Get("/docs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		http.ServeFile(w, r, "docs/redoc.html")
+	})
+	r.Get("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/yaml")
+		http.ServeFile(w, r, "api/openapi.yaml")
+	})
 }

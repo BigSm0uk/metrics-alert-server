@@ -252,3 +252,6 @@ func (h *MetricHandler) Ping(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("pong"))
 }
+func (h *MetricHandler) Close() error {
+	return h.service.Close()
+}

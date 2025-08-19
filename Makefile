@@ -12,7 +12,7 @@ SERVER_DIR := cmd/server
 AGENT_DIR := cmd/agent
 DEPLOY_DIR := deploy
 MIGRATIONS_DIR := migrations
-
+DOCS_DIR := docs
 # Binary names
 SERVER_BIN := $(SERVER_DIR)/server
 AGENT_BIN := $(AGENT_DIR)/agent
@@ -25,7 +25,7 @@ DB_PASSWORD := metrics_password
 DB_NAME := metrics_dev
 DATABASE_URL := postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable
 
-.PHONY: all fmt lint vet test build clean install-tools help docker-up docker-down migrate-up migrate-down migrate-status migrate-create
+.PHONY: all fmt lint vet test build clean install-tools help docker-up docker-down migrate-up migrate-down migrate-status migrate-create generate-docs
 
 # Default target
 all: build
@@ -137,6 +137,10 @@ migrate-reset:
 	@echo "[+] Resetting database (DOWN all + UP all)..."
 	@goose -dir $(MIGRATIONS_DIR) postgres "$(DATABASE_URL)" reset
 
+generate-docs:
+	@echo "[+] Generating docs..."
+	@npx @redocly/cli build-docs api/openapi.yaml -o $(DOCS_DIR)/redoc.html      
+	@echo "[+] Docs generated"
 # Show help
 help:
 	@echo "Available commands:"
@@ -158,3 +162,4 @@ help:
 	@echo "  make migrate-status - Check migration status"
 	@echo "  make migrate-create NAME=name - Create new migration"
 	@echo "  make migrate-reset - Reset database (down all + up all)"
+	@echo "  make generate-docs - Generate docs"

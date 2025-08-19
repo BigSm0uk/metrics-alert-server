@@ -97,3 +97,6 @@ func (s *MetricService) GetEnrichMetric(ctx context.Context, id, mType string) (
 func (s *MetricService) Ping(ctx context.Context) error {
 	return s.repository.Ping(ctx)
 }
+func (s *MetricService) Close() error {
+	return s.repository.Close()
+}
