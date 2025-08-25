@@ -10,15 +10,15 @@ import (
 )
 
 func InitRepository(ctx context.Context, cfg *config.ServerConfig) (interfaces.MetricsRepository, error) {
-	switch cfg.Storage.Type {
-	case "mem":
+	switch cfg.Storage.SType {
+	case config.StorageTypeMem:
 		return NewMemRepository(storage.NewMemStorage()), nil
-	case "postgres":
+	case config.StorageTypePostgres:
 		if cfg.Storage.ConnectionString == "" {
 			return nil, fmt.Errorf("connection string is required for postgres storage")
 		}
 		return NewPostgresRepository(ctx, &cfg.Storage)
 	default:
-		return nil, fmt.Errorf("unsupported storage type: %s", cfg.Storage.Type)
+		return nil, fmt.Errorf("unsupported storage type: %s", cfg.Storage.SType)
 	}
 }
