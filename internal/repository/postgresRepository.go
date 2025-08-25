@@ -84,7 +84,7 @@ func (r *PostgresRepository) Save(ctx context.Context, metric *domain.Metrics) e
 			ON CONFLICT (id, type)
 			DO UPDATE SET
 				delta = CASE
-					WHEN metrics.type = 'counter' THEN COALESCE(metrics.delta, 0) + COALESCE(EXCLUDED.delta, 0)
+					WHEN metrics.type = 'counter' THEN COALESCE(EXCLUDED.delta, 0)
 					ELSE EXCLUDED.delta
 				END,
 				value = CASE
@@ -135,17 +135,19 @@ func (r *PostgresRepository) Get(ctx context.Context, id, metricType string) (*d
 	pgErrClassifier := pgerrors.NewPostgresErrorClassifier()
 	for i := range maxRetries {
 		err := r.pool.QueryRow(ctx, sqlQuery, args...).Scan(&gotID, &gotType, &value, &delta, &hash)
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, domain.ErrMetricNotFound
+		if err == nil {
+			break
 		}
-		if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			zl.Log.Debug("metric not found", zap.String("id", id), zap.String("type", metricType))
+			return nil, domain.ErrMetricNotFound
+		} else {
 			if pgErrClassifier.Classify(err) == pgerrors.NonRetriable {
 				return nil, fmt.Errorf("query row: %w", err)
 			}
 			time.Sleep(retryDelay * time.Duration(i+1))
 			continue
 		}
-		return nil, fmt.Errorf("query row: %w", err)
 	}
 
 	m := &domain.Metrics{

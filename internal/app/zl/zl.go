@@ -16,6 +16,8 @@ func InitLogger(env string) {
 	switch env {
 	case config.EnvProduction:
 		Log = productionLogger()
+	case config.EnvLocal:
+		Log = localLogger()
 	default:
 		Log = developmentLogger()
 	}
@@ -36,6 +38,34 @@ func developmentLogger() *zap.Logger {
 			StacktraceKey:  "stacktrace",
 			EncodeLevel:    zapcore.CapitalColorLevelEncoder,
 			EncodeTime:     zapcore.ISO8601TimeEncoder,
+			EncodeDuration: zapcore.StringDurationEncoder,
+			EncodeCaller:   zapcore.ShortCallerEncoder,
+			EncodeName:     zapcore.FullNameEncoder,
+		},
+		OutputPaths:      []string{"stdout"},
+		ErrorOutputPaths: []string{"stderr"},
+		InitialFields:    map[string]any{},
+	}
+
+	logger, _ := cfg.Build()
+	return logger
+}
+
+func localLogger() *zap.Logger {
+	cfg := zap.Config{
+		Level:       zap.NewAtomicLevelAt(zap.DebugLevel),
+		Development: true,
+		Encoding:    "console",
+		EncoderConfig: zapcore.EncoderConfig{
+			MessageKey:     "message",
+			LevelKey:       "level",
+			TimeKey:        "time",
+			NameKey:        "logger",
+			CallerKey:      "caller",
+			FunctionKey:    "function",
+			StacktraceKey:  "stacktrace",
+			EncodeLevel:    zapcore.CapitalColorLevelEncoder,
+			EncodeTime:     zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05"),
 			EncodeDuration: zapcore.StringDurationEncoder,
 			EncodeCaller:   zapcore.ShortCallerEncoder,
 			EncodeName:     zapcore.FullNameEncoder,

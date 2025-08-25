@@ -396,7 +396,7 @@ func TestMetricHandler_UpdateMetricsBatch_Integration(t *testing.T) {
 	defer server.Close()
 
 	// Send batch update
-	batchPayload := []map[string]interface{}{
+	batchPayload := []map[string]any{
 		{
 			"id":    "cpu_usage",
 			"type":  domain.Gauge,
@@ -429,7 +429,7 @@ func TestMetricHandler_UpdateMetricsBatch_Integration(t *testing.T) {
 	assert.Equal(t, "150", string(counterResp.Body()))
 
 	// Send another batch to test counter accumulation
-	secondBatch := []map[string]interface{}{
+	secondBatch := []map[string]any{
 		{
 			"id":    "requests_total",
 			"type":  domain.Counter,

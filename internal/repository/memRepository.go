@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/storage"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
@@ -27,7 +26,7 @@ func (r *MemRepository) Save(ctx context.Context, metric *domain.Metrics) error 
 func (r *MemRepository) Get(ctx context.Context, id, t string) (*domain.Metrics, error) {
 	metric, ok := r.storage.Get(id, t)
 	if !ok {
-		return nil, fmt.Errorf("not found")
+		return nil, domain.ErrMetricNotFound
 	}
 	return &metric, nil
 }

@@ -77,7 +77,7 @@ build: build-server build-agent
 # Run server
 run-server: build-server
 	@echo "[+] Starting server..."
-	./$(SERVER_BIN)
+	./$(SERVER_BIN) --config=config/config.local.yaml
 
 # Run agent
 run-agent: build-agent

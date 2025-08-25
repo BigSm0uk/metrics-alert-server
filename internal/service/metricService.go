@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"go.uber.org/zap"
@@ -24,8 +25,14 @@ func (s *MetricService) UpdateMetric(ctx context.Context, metric *domain.Metrics
 	m, err := s.repository.Get(ctx, metric.ID, metric.MType)
 	//Пока база в памяти реальной ошибки быть не должно
 	if err != nil {
-		m = &domain.Metrics{}
+		if errors.Is(err, domain.ErrMetricNotFound) {
+			zl.Log.Debug("new metric", zap.String("id", metric.ID), zap.String("type", metric.MType))
+			m = &domain.Metrics{}
+		} else {
+			return err
+		}
 	}
+
 	switch metric.MType {
 	case domain.Counter:
 		nv := util.GetDefault(m.Delta) + *metric.Delta
@@ -60,7 +67,7 @@ func (s *MetricService) UpdateMetric(ctx context.Context, metric *domain.Metrics
 		}
 	}
 
-	zl.Log.Debug("updating metric", zap.String("type", metric.MType), zap.String("id", metric.ID), zap.String("value", fmt.Sprintf("%v", metric.Value)))
+	zl.Log.Debug("updating metric", zap.String("type", metric.MType), zap.String("id", metric.ID), zap.String("value", fmt.Sprintf("%v", util.GetDefault(metric.Value))), zap.String("delta", fmt.Sprintf("%v", util.GetDefault(metric.Delta))))
 	return nil
 }
 func (s *MetricService) UpdateMetricsBatch(ctx context.Context, metrics []domain.Metrics) error {

@@ -13,6 +13,7 @@ import (
 const (
 	EnvDevelopment = "development"
 	EnvProduction  = "production"
+	EnvLocal       = "local"
 
 	StorageTypeMem      = "mem"
 	StorageTypePostgres = "postgres"
