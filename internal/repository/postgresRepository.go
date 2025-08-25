@@ -42,11 +42,6 @@ func NewPostgresRepository(ctx context.Context, cfg *storage.StorageConfig) (*Po
 
 	repo := &PostgresRepository{pool: pool}
 
-	err = repo.Ping(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
-	}
-
 	return repo, nil
 }
 
