@@ -64,10 +64,10 @@ func (r *PostgresRepository) MustBootstrap(ctx context.Context) {
 CREATE INDEX IF NOT EXISTS idx_metrics_type ON metrics(type);
 CREATE INDEX IF NOT EXISTS idx_metrics_updated_at ON metrics(updated_at);
 
-ALTER TABLE metrics ADD CONSTRAINT chk_counter_has_delta 
+ALTER TABLE metrics ADD CONSTRAINT IF NOT EXISTS chk_counter_has_delta 
     CHECK ((type = 'counter' AND delta IS NOT NULL) OR type != 'counter');
 
-ALTER TABLE metrics ADD CONSTRAINT chk_gauge_has_value 
+ALTER TABLE metrics ADD CONSTRAINT IF NOT EXISTS chk_gauge_has_value 
     CHECK ((type = 'gauge' AND value IS NOT NULL) OR type != 'gauge');`
 
 	pgErrClassifier := pgerrors.NewPostgresErrorClassifier()
