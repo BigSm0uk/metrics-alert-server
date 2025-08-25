@@ -44,9 +44,9 @@ func LoadServerConfig() (*ServerConfig, error) {
 		cfg = InitDefaultConfig()
 	}
 
-	cfg.Store.UseStore = cfg.isActiveStore()
-
 	cfg.setStorageType()
+
+	cfg.Store.UseStore = cfg.isActiveStore()
 
 	return cfg, nil
 }
@@ -65,7 +65,7 @@ func InitDefaultConfig() *ServerConfig {
 	return &ServerConfig{
 		Addr: "localhost:8080",
 		Storage: S.StorageConfig{
-			SType: "mem",
+			SType: StorageTypeMem,
 		},
 		TemplatePath: "api/templates/metrics.html",
 		Env:          EnvDevelopment,
