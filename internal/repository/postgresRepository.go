@@ -8,11 +8,13 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	pgerrors "github.com/bigsm0uk/metrics-alert-server/internal/app/storage/pgerror"
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/config/storage"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/bigsm0uk/metrics-alert-server/internal/interfaces"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.uber.org/zap"
 )
 
 type PostgresRepository struct {
@@ -42,7 +44,44 @@ func NewPostgresRepository(ctx context.Context, cfg *storage.StorageConfig) (*Po
 
 	repo := &PostgresRepository{pool: pool}
 
+	repo.MustBootstrap(ctx)
+
 	return repo, nil
+}
+func (r *PostgresRepository) MustBootstrap(ctx context.Context) {
+	sql := `CREATE TABLE IF NOT EXISTS metrics (
+    id VARCHAR(255) NOT NULL,
+    type VARCHAR(50) NOT NULL CHECK (type IN ('counter', 'gauge')),
+    delta BIGINT,
+    value DOUBLE PRECISION,
+    hash VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    PRIMARY KEY (id, type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_metrics_type ON metrics(type);
+CREATE INDEX IF NOT EXISTS idx_metrics_updated_at ON metrics(updated_at);
+
+ALTER TABLE metrics ADD CONSTRAINT chk_counter_has_delta 
+    CHECK ((type = 'counter' AND delta IS NOT NULL) OR type != 'counter');
+
+ALTER TABLE metrics ADD CONSTRAINT chk_gauge_has_value 
+    CHECK ((type = 'gauge' AND value IS NOT NULL) OR type != 'gauge');`
+
+	pgErrClassifier := pgerrors.NewPostgresErrorClassifier()
+	for i := range maxRetries {
+		_, err := r.pool.Exec(ctx, sql)
+		if err == nil {
+			return
+		}
+		if pgErrClassifier.Classify(err) == pgerrors.NonRetriable {
+			zl.Log.Error("failed to bootstrap database", zap.Error(err))
+		}
+		time.Sleep(retryDelay * time.Duration(i+1))
+	}
+	zl.Log.Error("failed to bootstrap database", zap.String("dsn", r.pool.Config().ConnString()))
 }
 
 func (r *PostgresRepository) Save(ctx context.Context, metric *domain.Metrics) error {
