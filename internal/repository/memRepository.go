@@ -37,10 +37,6 @@ func (r *MemRepository) GetAll(ctx context.Context) ([]domain.Metrics, error) {
 	return metrics, nil
 }
 
-func (r *MemRepository) Delete(ctx context.Context, id string) error {
-	r.storage.Delete(id)
-	return nil
-}
 func (r *MemRepository) SaveBatch(ctx context.Context, metrics []domain.Metrics) error {
 	for _, metric := range metrics {
 		r.storage.Set(metric)

@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 	"go.uber.org/zap"
@@ -16,9 +17,15 @@ type MetricsSender struct {
 	serverURL string
 }
 
+const maxRetries = 3
+const retryDelay = time.Second
+
 func NewMetricsSender(serverURL string) *MetricsSender {
+	c := resty.New()
+	c.SetRetryCount(maxRetries)
+	c.SetRetryWaitTime(retryDelay)
 	return &MetricsSender{
-		client:    resty.New(),
+		client:    c,
 		serverURL: serverURL,
 	}
 }
@@ -37,6 +44,7 @@ func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics) error {
 	}
 
 	url := fmt.Sprintf("%s/updates", s.serverURL)
+
 	resp, err := s.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Content-Encoding", "gzip").

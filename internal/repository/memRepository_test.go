@@ -184,60 +184,6 @@ func TestMemRepository_GetAll(t *testing.T) {
 		})
 	}
 }
-
-func TestMemRepository_Delete(t *testing.T) {
-	type args struct {
-		id string
-	}
-	a, p := &domain.Metrics{
-		ID:    "Alloc",
-		MType: domain.Gauge,
-		Value: float64ptr(1024),
-	}, &domain.Metrics{
-		ID:    "PollCount",
-		MType: domain.Counter,
-		Delta: int64ptr(5),
-	}
-	tests := []struct {
-		name    string
-		r       *MemRepository
-		args    args
-		want    []domain.Metrics
-		wantErr bool
-	}{
-		{
-			name: "delete exist",
-			r:    createRepoWithData(),
-			want: []domain.Metrics{
-				*p,
-			},
-			args: args{
-				id: "Alloc",
-			},
-			wantErr: false,
-		},
-		{
-			name: "delete not exist",
-			r:    createRepoWithData(),
-			args: args{
-				id: "NotExist",
-			},
-			want: []domain.Metrics{
-				*a,
-				*p,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.r.Delete(context.Background(), tt.args.id)
-			require.NoError(t, err)
-			got, _ := tt.r.GetAll(context.Background())
-			require.ElementsMatch(t, tt.want, got)
-		})
-	}
-}
 func createRepoWithData() *MemRepository {
 	r := NewMemRepository(storage.NewMemStorage())
 	a, p := &domain.Metrics{
