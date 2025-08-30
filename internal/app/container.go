@@ -1,7 +1,9 @@
 package app
 
 import (
+	"context"
 	"io"
+	"time"
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/config"
@@ -45,7 +47,10 @@ func (c *Container) InitLogger() *Container {
 
 // InitRepository инициализирует репозиторий
 func (c *Container) InitRepository() *Container {
-	repo, err := repository.InitRepository(c.config)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	repo, err := repository.InitRepository(ctx, c.config)
 	if err != nil {
 		panic(err)
 	}
@@ -77,8 +82,10 @@ func (c *Container) InitHandler() *Container {
 
 // RestoreData восстанавливает данные из хранилища
 func (c *Container) RestoreData() *Container {
-	if c.config.Store.Restore {
-		if err := c.store.Restore(); err != nil && err != io.EOF {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if c.config.Store.Restore && c.store.IsActive() {
+		if err := c.store.Restore(ctx); err != nil && err != io.EOF {
 			panic(err)
 		}
 	}
@@ -104,4 +111,10 @@ func (c *Container) GetStore() interfaces.MetricsStore {
 // GetService возвращает сервис (для тестирования)
 func (c *Container) GetService() *service.MetricService {
 	return c.service
+}
+
+// MustBootstrap Накатывает миграции в базу данных
+func (c *Container) MustBootstrap() *Container {
+	c.repository.MustBootstrap(context.Background())
+	return c
 }

@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 	"go.uber.org/zap"
@@ -16,42 +17,19 @@ type MetricsSender struct {
 	serverURL string
 }
 
+const maxRetries = 3
+const retryDelay = time.Second
+
 func NewMetricsSender(serverURL string) *MetricsSender {
+	c := resty.New()
+	c.SetRetryCount(maxRetries)
+	c.SetRetryWaitTime(retryDelay)
 	return &MetricsSender{
-		client:    resty.New(),
+		client:    c,
 		serverURL: serverURL,
 	}
 }
 
-func (s *MetricsSender) SendMetricsV1(metrics []domain.Metrics) error {
-	for _, metric := range metrics {
-		var value string
-		if metric.MType == domain.Gauge && metric.Value != nil {
-			value = fmt.Sprintf("%g", *metric.Value)
-		} else if metric.MType == domain.Counter && metric.Delta != nil {
-			value = fmt.Sprintf("%d", *metric.Delta)
-		}
-
-		url := fmt.Sprintf("%s/update/%s/%s/%s", s.serverURL, metric.MType, metric.ID, value)
-
-		resp, err := s.client.R().
-			SetHeader("Content-Type", "text/plain").
-			SetHeader("Accept-Encoding", "gzip").
-			Post(url)
-		if err != nil {
-			zl.Log.Error("failed to send metric",
-				zap.String("metric", metric.ID),
-				zap.Error(err))
-			return err
-		}
-
-		zl.Log.Debug("metric sent",
-			zap.String("metric", metric.ID),
-			zap.Int("status", resp.StatusCode()))
-	}
-
-	return nil
-}
 func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics) error {
 
 	if len(metrics) == 0 {
@@ -65,7 +43,8 @@ func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics) error {
 		return err
 	}
 
-	url := fmt.Sprintf("%s/update/batch", s.serverURL)
+	url := fmt.Sprintf("%s/updates", s.serverURL)
+
 	resp, err := s.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Content-Encoding", "gzip").

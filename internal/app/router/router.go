@@ -44,12 +44,24 @@ func MapRoutes(r *chi.Mux, h *handler.MetricHandler) {
 	})
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", h.UpdateMetricByBody)
-		r.Post("/batch", h.UpdateMetricsBatch)
 		r.Post("/{type}/{id}/{value}", h.UpdateMetricByParam)
+	})
+	r.Route("/updates", func(r chi.Router) {
+		r.Post("/", h.UpdateMetricsBatch)
 	})
 	r.Get("/", h.GetAllMetrics)
 	r.Route("/value", func(r chi.Router) {
 		r.Post("/", h.EnrichMetric)
 		r.Get("/{type}/{id}", h.GetMetric)
+	})
+	r.Get("/ping", h.Ping)
+
+	r.Get("/docs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		http.ServeFile(w, r, "docs/redoc.html")
+	})
+	r.Get("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/yaml")
+		http.ServeFile(w, r, "api/openapi.yaml")
 	})
 }

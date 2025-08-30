@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-resty/resty/v2"
@@ -20,8 +22,10 @@ import (
 
 func setupTestServer(t *testing.T) (*httptest.Server, *resty.Client) {
 	cfg := config.InitDefaultConfig()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
-	r, err := repository.InitRepository(cfg)
+	r, err := repository.InitRepository(ctx, cfg)
 	require.NoError(t, err)
 
 	ms, err := store.NewJSONStore(r, &cfg.Store)
@@ -33,8 +37,10 @@ func setupTestServer(t *testing.T) (*httptest.Server, *resty.Client) {
 	router := chi.NewRouter()
 	router.Route("/update", func(r chi.Router) {
 		r.Post("/", h.UpdateMetricByBody)
-		r.Post("/batch", h.UpdateMetricsBatch)
 		r.Post("/{type}/{id}/{value}", h.UpdateMetricByParam)
+	})
+	router.Route("/updates", func(r chi.Router) {
+		r.Post("/", h.UpdateMetricsBatch)
 	})
 	router.Route("/value", func(r chi.Router) {
 		r.Post("/", h.EnrichMetric)
@@ -373,7 +379,7 @@ func TestMetricHandler_UpdateMetricsBatch(t *testing.T) {
 			resp, err := client.R().
 				SetHeader("Content-Type", "application/json").
 				SetBody(tt.body).
-				Post("/update/batch")
+				Post("/updates")
 
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantStatus, resp.StatusCode())
@@ -390,7 +396,7 @@ func TestMetricHandler_UpdateMetricsBatch_Integration(t *testing.T) {
 	defer server.Close()
 
 	// Send batch update
-	batchPayload := []map[string]interface{}{
+	batchPayload := []map[string]any{
 		{
 			"id":    "cpu_usage",
 			"type":  domain.Gauge,
@@ -406,7 +412,7 @@ func TestMetricHandler_UpdateMetricsBatch_Integration(t *testing.T) {
 	resp, err := client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(batchPayload).
-		Post("/update/batch")
+		Post("/updates")
 
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode())
@@ -423,7 +429,7 @@ func TestMetricHandler_UpdateMetricsBatch_Integration(t *testing.T) {
 	assert.Equal(t, "150", string(counterResp.Body()))
 
 	// Send another batch to test counter accumulation
-	secondBatch := []map[string]interface{}{
+	secondBatch := []map[string]any{
 		{
 			"id":    "requests_total",
 			"type":  domain.Counter,
@@ -434,7 +440,7 @@ func TestMetricHandler_UpdateMetricsBatch_Integration(t *testing.T) {
 	resp2, err := client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(secondBatch).
-		Post("/update/batch")
+		Post("/updates")
 
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp2.StatusCode())

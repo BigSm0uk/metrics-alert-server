@@ -1,0 +1,292 @@
+openapi: 3.0.3
+info:
+  title: Metrics Alert Server API
+  version: 1.0.0
+  description: API для обновления и получения метрик (gauge, counter)
+servers:
+  - url: /
+    description: Локальный сервер разработки
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: OK
+
+  /ping:
+    get:
+      summary: Проверка соединения с БД
+      responses:
+        '200':
+          description: Подключение к БД успешно
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: pong
+        '500':
+          description: Ошибка подключения к БД
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: Database connection failed
+
+  /:
+    get:
+      summary: HTML-страница со всеми метриками
+      responses:
+        '200':
+          description: HTML со списком метрик
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Ошибка получения метрик
+          content:
+            text/plain:
+              schema:
+                type: string
+        '500':
+          description: Ошибка рендеринга шаблона
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /update:
+    post:
+      summary: Обновить метрику из JSON тела
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BodyMetric'
+            examples:
+              gauge:
+                value:
+                  id: cpu_usage
+                  type: gauge
+                  value: 85.5
+              counter:
+                value:
+                  id: requests_total
+                  type: counter
+                  delta: 150
+      responses:
+        '200':
+          description: Обновленная метрика
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Metric'
+        '400':
+          description: Неверные данные
+          content:
+            text/plain:
+              schema:
+                type: string
+        '404':
+          description: Метрика не найдена
+          content:
+            text/plain:
+              schema:
+                type: string
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /update/{type}/{id}/{value}:
+    post:
+      summary: Обновить метрику через параметры пути
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema:
+            $ref: '#/components/schemas/MetricType'
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: value
+          required: true
+          schema:
+            type: string
+          description: "Для gauge — число с плавающей точкой, для counter — целое"
+      responses:
+        '200':
+          description: Метрика обновлена
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: Metric updated
+        '400':
+          description: Неверные данные
+          content:
+            text/plain:
+              schema:
+                type: string
+        '404':
+          description: Метрика не найдена
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /updates:
+    post:
+      summary: Массовое обновление метрик
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/BodyMetric'
+      responses:
+        '200':
+          description: Результат пакетного обновления
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: Successfully updated 3 metrics
+        '400':
+          description: Ошибка в одной из метрик
+          content:
+            text/plain:
+              schema:
+                type: string
+              examples:
+                missingValue:
+                  value: missing value for metric my_metric
+                invalid:
+                  value: "invalid metric my_metric: invalid metric type"
+
+  /value/{type}/{id}:
+    get:
+      summary: Получить значение метрики (text/plain)
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema:
+            $ref: '#/components/schemas/MetricType'
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Значение метрики как строка
+          content:
+            text/plain:
+              schema:
+                type: string
+              examples:
+                gauge:
+                  value: "85.5"
+                counter:
+                  value: "150"
+        '404':
+          description: Метрика не найдена
+
+  /value:
+    post:
+      summary: Получить полную метрику по id и type
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetMetricDTO'
+      responses:
+        '200':
+          description: Метрика
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Metric'
+        '400':
+          description: Неверные данные
+          content:
+            application/json:
+              schema:
+                type: string
+        '404':
+          description: Метрика не найдена
+          content:
+            application/json:
+              schema:
+                type: string
+
+components:
+  schemas:
+    MetricType:
+      type: string
+      enum: [gauge, counter]
+
+    Metric:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          $ref: '#/components/schemas/MetricType'
+        delta:
+          type: integer
+          format: int64
+          nullable: true
+        value:
+          type: number
+          format: double
+          nullable: true
+        hash:
+          type: string
+      required: [id, type]
+
+    BodyMetric:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          $ref: '#/components/schemas/MetricType'
+        delta:
+          type: integer
+          format: int64
+          nullable: true
+        value:
+          type: number
+          format: double
+          nullable: true
+      required: [id, type]
+      description: "Для counter требуется delta; для gauge требуется value"
+
+    GetMetricDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          $ref: '#/components/schemas/MetricType'
+      required: [id, type]
+

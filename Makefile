@@ -10,12 +10,22 @@ GOLANGCI_LINT := $(GOPATH)/bin/golangci-lint
 # Directories 
 SERVER_DIR := cmd/server
 AGENT_DIR := cmd/agent
-
+DEPLOY_DIR := deploy
+MIGRATIONS_DIR := migrations
+DOCS_DIR := docs
 # Binary names
 SERVER_BIN := $(SERVER_DIR)/server
 AGENT_BIN := $(AGENT_DIR)/agent
 
-.PHONY: all fmt lint vet test build clean install-tools help
+# Database configuration
+DB_HOST := localhost
+DB_PORT := 5432
+DB_USER := metrics_user
+DB_PASSWORD := metrics_password
+DB_NAME := metrics_dev
+DATABASE_URL := postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable
+
+.PHONY: all fmt lint vet test build clean install-tools help docker-up docker-down migrate-up migrate-down migrate-status migrate-create generate-docs
 
 # Default target
 all: build
@@ -67,7 +77,7 @@ build: build-server build-agent
 # Run server
 run-server: build-server
 	@echo "[+] Starting server..."
-	./$(SERVER_BIN)
+	./$(SERVER_BIN) --config=config/config.local.yaml
 
 # Run agent
 run-agent: build-agent
@@ -86,10 +96,51 @@ install-tools:
 	@echo "[+] Installing required tools..."
 	$(GO) install golang.org/x/tools/cmd/goimports@latest
 	$(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	$(GO) install github.com/pressly/goose/v3/cmd/goose@latest
 	@echo "[+] Tools installation complete."
 	@echo "[+] Please ensure that $(GOPATH)/bin is in your PATH"
 	@echo "[+] Current GOPATH: $(GOPATH)"
 
+# Docker Compose commands
+docker-up:
+	@echo "[+] Starting development environment..."
+	@cd $(DEPLOY_DIR) && docker-compose -f docker-compose.dev.yaml up -d
+	@echo "[+] Development environment started"
+
+docker-down:
+	@echo "[+] Stopping development environment..."
+	@cd $(DEPLOY_DIR) && docker-compose -f docker-compose.dev.yaml down
+	@echo "[+] Development environment stopped"
+
+# Database migrations with Goose
+migrate-up:
+	@echo "[+] Running database migrations up..."
+	@goose -dir $(MIGRATIONS_DIR) postgres "$(DATABASE_URL)" up
+
+migrate-down:
+	@echo "[+] Rolling back database migrations..."
+	@goose -dir $(MIGRATIONS_DIR) postgres "$(DATABASE_URL)" down
+
+migrate-status:
+	@echo "[+] Checking migration status..."
+	@goose -dir $(MIGRATIONS_DIR) postgres "$(DATABASE_URL)" status
+
+migrate-create:
+	@if [ -z "$(NAME)" ]; then \
+		echo "Usage: make migrate-create NAME=migration_name"; \
+		exit 1; \
+	fi
+	@echo "[+] Creating new migration: $(NAME)..."
+	@goose -dir $(MIGRATIONS_DIR) create $(NAME) sql
+
+migrate-reset:
+	@echo "[+] Resetting database (DOWN all + UP all)..."
+	@goose -dir $(MIGRATIONS_DIR) postgres "$(DATABASE_URL)" reset
+
+generate-docs:
+	@echo "[+] Generating docs..."
+	@npx @redocly/cli build-docs api/openapi.yaml -o $(DOCS_DIR)/redoc.html      
+	@echo "[+] Docs generated"
 # Show help
 help:
 	@echo "Available commands:"
@@ -104,3 +155,11 @@ help:
 	@echo "  make run-agent    - Build and run agent"
 	@echo "  make clean        - Remove build artifacts"
 	@echo "  make install-tools - Install required development tools"
+	@echo "  make docker-up    - Start development environment (PostgreSQL)"
+	@echo "  make docker-down  - Stop development environment"
+	@echo "  make migrate-up   - Run database migrations"
+	@echo "  make migrate-down - Rollback database migrations"
+	@echo "  make migrate-status - Check migration status"
+	@echo "  make migrate-create NAME=name - Create new migration"
+	@echo "  make migrate-reset - Reset database (down all + up all)"
+	@echo "  make generate-docs - Generate docs"

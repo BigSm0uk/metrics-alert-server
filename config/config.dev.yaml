@@ -1,4 +1,2 @@
 env: "development"
-storage:
-  type: "mem"
 template_path: "api/templates/metrics.html"

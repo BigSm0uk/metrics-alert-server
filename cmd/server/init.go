@@ -14,6 +14,7 @@ func initializeApp() (*app.Server, error) {
 		InitService().
 		InitHandler().
 		RestoreData().
+		MustBootstrap().
 		Build()
 
 	if err != nil {

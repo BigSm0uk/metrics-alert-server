@@ -1,8 +1,9 @@
 package service
 
 import (
+	"context"
 	"errors"
-	"strconv"
+	"fmt"
 
 	"go.uber.org/zap"
 
@@ -17,32 +18,27 @@ type MetricService struct {
 	store      interfaces.MetricsStore
 }
 
-var (
-	ErrMetricNotFound     = errors.New("metric not found")
-	ErrInvalidMetricType  = errors.New("invalid metric type")
-	ErrInvalidMetricValue = errors.New("invalid metric value")
-)
-
 func NewService(repository interfaces.MetricsRepository, store interfaces.MetricsStore) *MetricService {
 	return &MetricService{repository: repository, store: store}
 }
-func (s *MetricService) UpdateMetric(id, mType, value string) error {
-	m, err := s.repository.Get(id, mType)
+func (s *MetricService) UpdateMetric(ctx context.Context, metric *domain.Metrics) error {
+	m, err := s.repository.Get(ctx, metric.ID, metric.MType)
 	//Пока база в памяти реальной ошибки быть не должно
 	if err != nil {
-		m = &domain.Metrics{}
-	}
-	switch mType {
-	case domain.Counter:
-		v, parseErr := strconv.ParseInt(value, 10, 64)
-		if parseErr != nil {
-			zl.Log.Error("invalid counter value", zap.String("value", value), zap.Error(parseErr))
-			return ErrInvalidMetricValue
+		if errors.Is(err, domain.ErrMetricNotFound) {
+			zl.Log.Debug("new metric", zap.String("id", metric.ID), zap.String("type", metric.MType))
+			m = &domain.Metrics{}
+		} else {
+			return err
 		}
-		nv := util.GetDefault(m.Delta) + v
-		err = s.repository.Save(&domain.Metrics{
-			ID:    id,
-			MType: mType,
+	}
+
+	switch metric.MType {
+	case domain.Counter:
+		nv := util.GetDefault(m.Delta) + *metric.Delta
+		err = s.repository.SaveOrUpdate(ctx, &domain.Metrics{
+			ID:    metric.ID,
+			MType: metric.MType,
 			Delta: &nv,
 			Hash:  m.Hash,
 		})
@@ -51,15 +47,10 @@ func (s *MetricService) UpdateMetric(id, mType, value string) error {
 			return err
 		}
 	case domain.Gauge:
-		v, parseErr := strconv.ParseFloat(value, 64)
-		if parseErr != nil {
-			zl.Log.Error("invalid gauge value", zap.String("value", value), zap.Error(parseErr))
-			return ErrInvalidMetricValue
-		}
-		err = s.repository.Save(&domain.Metrics{
-			ID:    id,
-			MType: mType,
-			Value: &v,
+		err = s.repository.SaveOrUpdate(ctx, &domain.Metrics{
+			ID:    metric.ID,
+			MType: metric.MType,
+			Value: metric.Value,
 			Hash:  m.Hash,
 		})
 		if err != nil {
@@ -68,33 +59,51 @@ func (s *MetricService) UpdateMetric(id, mType, value string) error {
 		}
 	}
 
-	if s.store != nil && s.store.IsSyncMode() {
-		updatedMetric, _ := s.repository.Get(id, mType)
+	if s.store != nil && s.store.IsActive() && s.store.IsSyncMode() {
+		updatedMetric, _ := s.repository.Get(ctx, metric.ID, metric.MType)
 		if err := s.store.WriteMetric(*updatedMetric); err != nil {
 			zl.Log.Error("failed to save metric to store", zap.Error(err))
 			return err
 		}
 	}
 
-	zl.Log.Debug("updating metric", zap.String("type", mType), zap.String("id", id), zap.String("value", value))
+	zl.Log.Debug("updating metric", zap.String("type", metric.MType), zap.String("id", metric.ID), zap.String("value", fmt.Sprintf("%v", util.GetDefault(metric.Value))), zap.String("delta", fmt.Sprintf("%v", util.GetDefault(metric.Delta))))
 	return nil
 }
-func (s *MetricService) GetAllMetrics() ([]domain.Metrics, error) {
-	m, err := s.repository.GetAll()
+func (s *MetricService) UpdateMetricsBatch(ctx context.Context, metrics []domain.Metrics) error {
+	err := s.repository.SaveOrUpdateBatch(ctx, metrics)
+	if err != nil {
+		zl.Log.Error("failed to save metrics batch", zap.Error(err))
+		return err
+	}
+	if s.store != nil && s.store.IsActive() && s.store.IsSyncMode() {
+		s.store.SaveAllMetrics(ctx)
+	}
+	return nil
+}
+
+func (s *MetricService) GetAllMetrics(ctx context.Context) ([]domain.Metrics, error) {
+	m, err := s.repository.GetAll(ctx)
 	if err != nil {
 		return nil, err
 	}
 	zl.Log.Debug("Total metrics", zap.Int("len", len(m)))
 	return m, nil
 }
-func (s *MetricService) GetMetric(id, t string) (*domain.Metrics, error) {
-	m, err := s.repository.Get(id, t)
+func (s *MetricService) GetMetric(ctx context.Context, id, t string) (*domain.Metrics, error) {
+	m, err := s.repository.Get(ctx, id, t)
 	if err != nil {
 		return nil, err
 	}
 	zl.Log.Debug("Get metric", zap.String("id", id))
 	return m, nil
 }
-func (s *MetricService) GetEnrichMetric(id, mType string) (*domain.Metrics, error) {
-	return s.repository.Get(id, mType)
+func (s *MetricService) GetEnrichMetric(ctx context.Context, id, mType string) (*domain.Metrics, error) {
+	return s.repository.Get(ctx, id, mType)
+}
+func (s *MetricService) Ping(ctx context.Context) error {
+	return s.repository.Ping(ctx)
+}
+func (s *MetricService) Close() error {
+	return s.repository.Close()
 }

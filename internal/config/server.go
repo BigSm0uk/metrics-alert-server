@@ -13,6 +13,10 @@ import (
 const (
 	EnvDevelopment = "development"
 	EnvProduction  = "production"
+	EnvLocal       = "local"
+
+	StorageTypeMem      = "mem"
+	StorageTypePostgres = "postgres"
 )
 
 type ServerConfig struct {
@@ -32,6 +36,8 @@ func LoadServerConfig() (*ServerConfig, error) {
 	flag.BoolVar(&cfg.Store.Restore, "r", true, "restore store from file")
 	flag.StringVar(&cfg.Store.StoreInterval, "i", "300", "store interval")
 
+	flag.StringVar(&cfg.Storage.ConnectionString, "d", "", "database connection string")
+
 	flag.Parse()
 
 	if err := cleanenv.ReadConfig(*path, cfg); err != nil {
@@ -39,21 +45,29 @@ func LoadServerConfig() (*ServerConfig, error) {
 		cfg = InitDefaultConfig()
 	}
 
+	cfg.Store.UseStore = cfg.isActiveStore()
+
 	return cfg, nil
+}
+func (s *ServerConfig) isActiveStore() bool {
+	return !s.IsPgStoreStorage() && s.Store.FileStoragePath != ""
+}
+
+func (s *ServerConfig) IsPgStoreStorage() bool {
+	return s.Storage.ConnectionString != ""
 }
 func InitDefaultConfig() *ServerConfig {
 	return &ServerConfig{
 		Addr: "localhost:8080",
 		Storage: S.StorageConfig{
-			Type: "mem",
+			ConnectionString: "",
 		},
 		TemplatePath: "api/templates/metrics.html",
 		Env:          EnvDevelopment,
 		Store: Store.StoreConfig{
-			FileStoragePath: "store.json",
-			Restore:         false,
-			StoreInterval:   "300",
-			SFormat:         "json",
+			UseStore:      false,
+			StoreInterval: "300",
+			SFormat:       "json",
 		},
 	}
 }

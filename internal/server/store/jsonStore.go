@@ -3,6 +3,7 @@ package store
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"os"
@@ -47,22 +48,22 @@ func NewJSONStore(r interfaces.MetricsRepository, cfg *store.StoreConfig) (*JSON
 
 	return ms, nil
 }
-func (s *JSONStore) StartProcess() {
-	if s.syncMode {
+func (s *JSONStore) StartProcess(ctx context.Context) {
+	if !s.IsActive() || s.syncMode {
 		return
 	}
-	s.startPeriodicSave()
+	s.startPeriodicSave(ctx)
 }
 func (s *JSONStore) IsSyncMode() bool {
 	return s.syncMode
 }
-func (s *JSONStore) startPeriodicSave() {
+func (s *JSONStore) startPeriodicSave(ctx context.Context) {
 	s.ticker = time.NewTicker(s.storeInterval)
 	go func() {
 		for {
 			select {
 			case <-s.ticker.C:
-				if err := s.SaveAllMetrics(); err != nil {
+				if err := s.SaveAllMetrics(ctx); err != nil {
 					zl.Log.Error("failed to save metrics during periodic save", zap.Error(err))
 				}
 			case <-s.stopChan:
@@ -90,8 +91,8 @@ func (s *JSONStore) WriteMetric(metric domain.Metrics) error {
 
 	return nil
 }
-func (s *JSONStore) SaveAllMetrics() error {
-	metrics, err := s.r.GetAll()
+func (s *JSONStore) SaveAllMetrics(ctx context.Context) error {
+	metrics, err := s.r.GetAll(ctx)
 	if err != nil {
 		return err
 	}
@@ -115,7 +116,7 @@ func (s *JSONStore) SaveAllMetrics() error {
 	return nil
 }
 
-func (s *JSONStore) Restore() error {
+func (s *JSONStore) Restore(ctx context.Context) error {
 	file, err := os.Open(s.cfg.FileStoragePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -142,7 +143,7 @@ func (s *JSONStore) Restore() error {
 			return err
 		}
 
-		if err := s.r.Save(&metric); err != nil {
+		if err := s.r.SaveOrUpdate(ctx, &metric); err != nil {
 			zl.Log.Error("failed to save metric during restore", zap.Error(err))
 			return err
 		}
@@ -152,17 +153,21 @@ func (s *JSONStore) Restore() error {
 	zl.Log.Info("successfully restored metrics", zap.Int("count", count))
 	return nil
 }
-func (s *JSONStore) Close() error {
+func (s *JSONStore) Close(ctx context.Context) error {
 	if s.ticker != nil {
 		s.ticker.Stop()
 		close(s.stopChan)
 	}
-
-	if err := s.SaveAllMetrics(); err != nil {
-		zl.Log.Error("failed to save metrics during close", zap.Error(err))
-		return err
+	if s.IsActive() {
+		if err := s.SaveAllMetrics(ctx); err != nil {
+			zl.Log.Error("failed to save metrics during close", zap.Error(err))
+			return err
+		}
 	}
 
 	zl.Log.Info("store closed successfully")
 	return nil
+}
+func (s *JSONStore) IsActive() bool {
+	return s.cfg.UseStore
 }
