@@ -53,5 +53,4 @@ func (r *MemRepository) Close() error {
 	return nil
 }
 func (r *MemRepository) MustBootstrap(ctx context.Context) {
-	return
 }
