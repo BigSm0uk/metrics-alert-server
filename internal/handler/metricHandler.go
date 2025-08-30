@@ -7,8 +7,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/goccy/go-json"
+	"go.uber.org/zap"
 
 	"github.com/bigsm0uk/metrics-alert-server/api/templates"
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/bigsm0uk/metrics-alert-server/internal/service"
 )
@@ -133,7 +135,9 @@ func (h *MetricHandler) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
 
 	m, err := h.service.GetAllMetrics(ctx)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusInternalServerError)
+		zl.Log.Error("failed to get all metrics", zap.Error(err))
+		w.Write([]byte("failed to get all metrics"))
 		return
 	}
 

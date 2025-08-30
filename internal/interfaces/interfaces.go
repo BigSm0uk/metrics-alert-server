@@ -7,15 +7,17 @@ import (
 )
 
 type MetricsRepository interface {
-	Save(ctx context.Context, metric *domain.Metrics) error
+	SaveOrUpdate(ctx context.Context, metric *domain.Metrics) error
 	Get(ctx context.Context, id, metricType string) (*domain.Metrics, error)
 	GetAll(ctx context.Context) ([]domain.Metrics, error)
 
-	SaveBatch(ctx context.Context, metrics []domain.Metrics) error
+	SaveOrUpdateBatch(ctx context.Context, metrics []domain.Metrics) error
 	GetByType(ctx context.Context, metricType string) ([]domain.Metrics, error)
 
 	Ping(ctx context.Context) error
 	Close() error
+
+	MustBootstrap(ctx context.Context)
 }
 type MetricsStore interface {
 	StartProcess(ctx context.Context)

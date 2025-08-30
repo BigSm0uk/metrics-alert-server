@@ -12,6 +12,7 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/internal/config/storage"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/bigsm0uk/metrics-alert-server/internal/interfaces"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
@@ -21,9 +22,17 @@ type PostgresRepository struct {
 	pool *pgxpool.Pool
 }
 
-const maxRetries = 3
-
 var _ interfaces.MetricsRepository = (*PostgresRepository)(nil)
+
+// newBackoff создает конфигурацию backoff для retry операций
+func newBackoff() *backoff.ExponentialBackOff {
+	b := backoff.NewExponentialBackOff()
+	b.InitialInterval = 1 * time.Second
+	b.Multiplier = 2.0
+	b.MaxInterval = 5 * time.Second
+	b.MaxElapsedTime = 10 * time.Second
+	return b
+}
 
 func NewPostgresRepository(ctx context.Context, cfg *storage.StorageConfig) (*PostgresRepository, error) {
 	config, err := pgxpool.ParseConfig(cfg.ConnectionString)
@@ -41,11 +50,7 @@ func NewPostgresRepository(ctx context.Context, cfg *storage.StorageConfig) (*Po
 		return nil, fmt.Errorf("failed to create connection pool: %w", err)
 	}
 
-	repo := &PostgresRepository{pool: pool}
-
-	repo.MustBootstrap(ctx)
-
-	return repo, nil
+	return &PostgresRepository{pool: pool}, nil
 }
 func (r *PostgresRepository) MustBootstrap(ctx context.Context) {
 	sql := `CREATE TABLE IF NOT EXISTS metrics (
@@ -60,21 +65,27 @@ func (r *PostgresRepository) MustBootstrap(ctx context.Context) {
     PRIMARY KEY (id, type)
 );`
 
-	pgErrClassifier := pgerrors.NewPostgresErrorClassifier()
-	for i := range maxRetries {
+	operation := func() error {
 		_, err := r.pool.Exec(ctx, sql)
-		if err == nil {
-			return
+		if err != nil {
+			pgErrClassifier := pgerrors.NewPostgresErrorClassifier()
+			if pgErrClassifier.Classify(err) == pgerrors.NonRetriable {
+				zl.Log.Error("failed to bootstrap database", zap.Error(err))
+				return backoff.Permanent(err)
+			}
+			return err
 		}
-		if pgErrClassifier.Classify(err) == pgerrors.NonRetriable {
-			zl.Log.Error("failed to bootstrap database", zap.Error(err))
-		}
-		time.Sleep(retryDelayAt(i))
+		return nil
 	}
-	zl.Log.Error("failed to bootstrap database", zap.String("dsn", r.pool.Config().ConnString()))
+
+	if err := backoff.Retry(operation, newBackoff()); err != nil {
+		zl.Log.Error("failed to bootstrap database after retries",
+			zap.Error(err),
+			zap.String("dsn", r.pool.Config().ConnString()))
+	}
 }
 
-func (r *PostgresRepository) Save(ctx context.Context, metric *domain.Metrics) error {
+func (r *PostgresRepository) SaveOrUpdate(ctx context.Context, metric *domain.Metrics) error {
 	b := sq.
 		Insert("metrics").
 		Columns("id", "type", "value", "delta", "hash").
@@ -99,18 +110,20 @@ func (r *PostgresRepository) Save(ctx context.Context, metric *domain.Metrics) e
 	if err != nil {
 		return fmt.Errorf("build query: %w", err)
 	}
-	pgErrClassifier := pgerrors.NewPostgresErrorClassifier()
-	for i := 0; i < maxRetries; i++ {
-		_, err = r.pool.Exec(ctx, sqlQuery, args...)
-		if err == nil {
-			return nil
+
+	operation := func() error {
+		_, err := r.pool.Exec(ctx, sqlQuery, args...)
+		if err != nil {
+			pgErrClassifier := pgerrors.NewPostgresErrorClassifier()
+			if pgErrClassifier.Classify(err) == pgerrors.NonRetriable {
+				return backoff.Permanent(err)
+			}
+			return err
 		}
-		if pgErrClassifier.Classify(err) == pgerrors.NonRetriable {
-			return fmt.Errorf("exec query: %w", err)
-		}
-		time.Sleep(retryDelayAt(i))
+		return nil
 	}
-	return fmt.Errorf("exec query: %w", err)
+
+	return backoff.Retry(operation, newBackoff())
 }
 
 func (r *PostgresRepository) Get(ctx context.Context, id, metricType string) (*domain.Metrics, error) {
@@ -131,22 +144,28 @@ func (r *PostgresRepository) Get(ctx context.Context, id, metricType string) (*d
 		delta   *int64
 		hash    *string
 	)
-	pgErrClassifier := pgerrors.NewPostgresErrorClassifier()
-	for i := range maxRetries {
+
+	operation := func() error {
 		err := r.pool.QueryRow(ctx, sqlQuery, args...).Scan(&gotID, &gotType, &value, &delta, &hash)
-		if err == nil {
-			break
-		}
-		if errors.Is(err, pgx.ErrNoRows) {
-			zl.Log.Debug("metric not found", zap.String("id", id), zap.String("type", metricType))
-			return nil, domain.ErrMetricNotFound
-		} else {
-			if pgErrClassifier.Classify(err) == pgerrors.NonRetriable {
-				return nil, fmt.Errorf("query row: %w", err)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				zl.Log.Debug("metric not found", zap.String("id", id), zap.String("type", metricType))
+				return backoff.Permanent(domain.ErrMetricNotFound)
 			}
-			time.Sleep(retryDelayAt(i))
-			continue
+			pgErrClassifier := pgerrors.NewPostgresErrorClassifier()
+			if pgErrClassifier.Classify(err) == pgerrors.NonRetriable {
+				return backoff.Permanent(err)
+			}
+			return err
 		}
+		return nil
+	}
+
+	if err := backoff.Retry(operation, newBackoff()); err != nil {
+		if errors.Is(err, domain.ErrMetricNotFound) {
+			return nil, domain.ErrMetricNotFound
+		}
+		return nil, fmt.Errorf("query row: %w", err)
 	}
 
 	m := &domain.Metrics{
@@ -171,19 +190,23 @@ func (r *PostgresRepository) GetAll(ctx context.Context) ([]domain.Metrics, erro
 		return nil, fmt.Errorf("build query: %w", err)
 	}
 
-	pgErrClassifier := pgerrors.NewPostgresErrorClassifier()
 	var rows pgx.Rows
-	for i := range maxRetries {
+
+	operation := func() error {
 		r, err := r.pool.Query(ctx, sqlQuery, args...)
 		if err != nil {
+			pgErrClassifier := pgerrors.NewPostgresErrorClassifier()
 			if pgErrClassifier.Classify(err) == pgerrors.NonRetriable {
-				return nil, fmt.Errorf("exec query: %w", err)
+				return backoff.Permanent(err)
 			}
-			time.Sleep(retryDelayAt(i))
-			continue
+			return err
 		}
 		rows = r
-		break
+		return nil
+	}
+
+	if err := backoff.Retry(operation, newBackoff()); err != nil {
+		return nil, fmt.Errorf("exec query: %w", err)
 	}
 	defer rows.Close()
 
@@ -199,7 +222,7 @@ func (r *PostgresRepository) GetAll(ctx context.Context) ([]domain.Metrics, erro
 	return metrics, nil
 }
 
-func (r *PostgresRepository) SaveBatch(ctx context.Context, metrics []domain.Metrics) error {
+func (r *PostgresRepository) SaveOrUpdateBatch(ctx context.Context, metrics []domain.Metrics) error {
 	if len(metrics) == 0 {
 		return nil
 	}
@@ -232,18 +255,20 @@ func (r *PostgresRepository) SaveBatch(ctx context.Context, metrics []domain.Met
 	if err != nil {
 		return fmt.Errorf("build query: %w", err)
 	}
-	pgErrClassifier := pgerrors.NewPostgresErrorClassifier()
-	for i := range maxRetries {
-		_, err = r.pool.Exec(ctx, sqlQuery, args...)
-		if err == nil {
-			return nil
+
+	operation := func() error {
+		_, err := r.pool.Exec(ctx, sqlQuery, args...)
+		if err != nil {
+			pgErrClassifier := pgerrors.NewPostgresErrorClassifier()
+			if pgErrClassifier.Classify(err) == pgerrors.NonRetriable {
+				return backoff.Permanent(err)
+			}
+			return err
 		}
-		if pgErrClassifier.Classify(err) == pgerrors.NonRetriable {
-			return fmt.Errorf("exec query: %w", err)
-		}
-		time.Sleep(retryDelayAt(i))
+		return nil
 	}
-	return fmt.Errorf("exec query: %w", err)
+
+	return backoff.Retry(operation, newBackoff())
 }
 
 func (r *PostgresRepository) GetByType(ctx context.Context, metricType string) ([]domain.Metrics, error) {
@@ -257,19 +282,23 @@ func (r *PostgresRepository) GetByType(ctx context.Context, metricType string) (
 		return nil, fmt.Errorf("build query: %w", err)
 	}
 
-	pgErrClassifier := pgerrors.NewPostgresErrorClassifier()
 	var rows pgx.Rows
-	for i := range maxRetries {
+
+	operation := func() error {
 		r, err := r.pool.Query(ctx, sqlQuery, args...)
 		if err != nil {
+			pgErrClassifier := pgerrors.NewPostgresErrorClassifier()
 			if pgErrClassifier.Classify(err) == pgerrors.NonRetriable {
-				return nil, fmt.Errorf("exec query: %w", err)
+				return backoff.Permanent(err)
 			}
-			time.Sleep(retryDelayAt(i))
-			continue
+			return err
 		}
 		rows = r
-		break
+		return nil
+	}
+
+	if err := backoff.Retry(operation, newBackoff()); err != nil {
+		return nil, fmt.Errorf("exec query: %w", err)
 	}
 	defer rows.Close()
 
@@ -286,26 +315,22 @@ func (r *PostgresRepository) GetByType(ctx context.Context, metricType string) (
 }
 
 func (r *PostgresRepository) Ping(ctx context.Context) error {
-	pgErrClassifier := pgerrors.NewPostgresErrorClassifier()
-	var err error
-	for i := range maxRetries {
-		err = r.pool.Ping(ctx)
-		if err == nil {
-			return nil
+	operation := func() error {
+		err := r.pool.Ping(ctx)
+		if err != nil {
+			pgErrClassifier := pgerrors.NewPostgresErrorClassifier()
+			if pgErrClassifier.Classify(err) == pgerrors.NonRetriable {
+				return backoff.Permanent(err)
+			}
+			return err
 		}
-		if pgErrClassifier.Classify(err) == pgerrors.NonRetriable {
-			return fmt.Errorf("ping attempt: %d: %w", i+1, err)
-		}
-		time.Sleep(retryDelayAt(i))
+		return nil
 	}
-	return fmt.Errorf("ping attempt: %d: %w", maxRetries+1, err)
+
+	return backoff.Retry(operation, newBackoff())
 }
 
 func (r *PostgresRepository) Close() error {
 	r.pool.Close()
 	return nil
-}
-
-func retryDelayAt(attempt int) time.Duration {
-	return time.Duration(2*attempt+1) * time.Second
 }

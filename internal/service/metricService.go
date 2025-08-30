@@ -36,7 +36,7 @@ func (s *MetricService) UpdateMetric(ctx context.Context, metric *domain.Metrics
 	switch metric.MType {
 	case domain.Counter:
 		nv := util.GetDefault(m.Delta) + *metric.Delta
-		err = s.repository.Save(ctx, &domain.Metrics{
+		err = s.repository.SaveOrUpdate(ctx, &domain.Metrics{
 			ID:    metric.ID,
 			MType: metric.MType,
 			Delta: &nv,
@@ -47,7 +47,7 @@ func (s *MetricService) UpdateMetric(ctx context.Context, metric *domain.Metrics
 			return err
 		}
 	case domain.Gauge:
-		err = s.repository.Save(ctx, &domain.Metrics{
+		err = s.repository.SaveOrUpdate(ctx, &domain.Metrics{
 			ID:    metric.ID,
 			MType: metric.MType,
 			Value: metric.Value,
@@ -71,7 +71,7 @@ func (s *MetricService) UpdateMetric(ctx context.Context, metric *domain.Metrics
 	return nil
 }
 func (s *MetricService) UpdateMetricsBatch(ctx context.Context, metrics []domain.Metrics) error {
-	err := s.repository.SaveBatch(ctx, metrics)
+	err := s.repository.SaveOrUpdateBatch(ctx, metrics)
 	if err != nil {
 		zl.Log.Error("failed to save metrics batch", zap.Error(err))
 		return err

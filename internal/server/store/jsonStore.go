@@ -143,7 +143,7 @@ func (s *JSONStore) Restore(ctx context.Context) error {
 			return err
 		}
 
-		if err := s.r.Save(ctx, &metric); err != nil {
+		if err := s.r.SaveOrUpdate(ctx, &metric); err != nil {
 			zl.Log.Error("failed to save metric during restore", zap.Error(err))
 			return err
 		}

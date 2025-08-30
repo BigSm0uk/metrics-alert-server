@@ -112,3 +112,9 @@ func (c *Container) GetStore() interfaces.MetricsStore {
 func (c *Container) GetService() *service.MetricService {
 	return c.service
 }
+
+// MustBootstrap Накатывает миграции в базу данных
+func (c *Container) MustBootstrap() *Container {
+	c.repository.MustBootstrap(context.Background())
+	return c
+}

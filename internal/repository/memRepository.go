@@ -18,7 +18,7 @@ func NewMemRepository(storage *storage.MemStorage) *MemRepository {
 	return &MemRepository{storage: storage}
 }
 
-func (r *MemRepository) Save(ctx context.Context, metric *domain.Metrics) error {
+func (r *MemRepository) SaveOrUpdate(ctx context.Context, metric *domain.Metrics) error {
 	r.storage.Set(*metric)
 	return nil
 }
@@ -36,7 +36,7 @@ func (r *MemRepository) GetAll(ctx context.Context) ([]domain.Metrics, error) {
 	return metrics, nil
 }
 
-func (r *MemRepository) SaveBatch(ctx context.Context, metrics []domain.Metrics) error {
+func (r *MemRepository) SaveOrUpdateBatch(ctx context.Context, metrics []domain.Metrics) error {
 	for _, metric := range metrics {
 		r.storage.Set(metric)
 	}
@@ -51,4 +51,7 @@ func (r *MemRepository) Ping(ctx context.Context) error {
 }
 func (r *MemRepository) Close() error {
 	return nil
+}
+func (r *MemRepository) MustBootstrap(ctx context.Context) {
+	return
 }

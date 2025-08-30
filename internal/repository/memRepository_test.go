@@ -16,12 +16,12 @@ func TestMemRepository_Get(t *testing.T) {
 		t  string
 	}
 	r := NewMemRepository(storage.NewMemStorage())
-	r.Save(context.Background(), &domain.Metrics{
+	r.SaveOrUpdate(context.Background(), &domain.Metrics{
 		ID:    "Alloc",
 		MType: domain.Gauge,
 		Value: float64ptr(1024),
 	})
-	r.Save(context.Background(), &domain.Metrics{
+	r.SaveOrUpdate(context.Background(), &domain.Metrics{
 		ID:    "PollCount",
 		MType: domain.Counter,
 		Delta: int64ptr(5),
@@ -131,7 +131,7 @@ func TestMemRepository_Save(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.r.Save(context.Background(), tt.args.metric)
+			err := tt.r.SaveOrUpdate(context.Background(), tt.args.metric)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
@@ -195,7 +195,7 @@ func createRepoWithData() *MemRepository {
 		MType: domain.Counter,
 		Delta: int64ptr(5),
 	}
-	r.Save(context.Background(), a)
-	r.Save(context.Background(), p)
+	r.SaveOrUpdate(context.Background(), a)
+	r.SaveOrUpdate(context.Background(), p)
 	return r
 }
