@@ -45,28 +45,22 @@ func LoadServerConfig() (*ServerConfig, error) {
 		cfg = InitDefaultConfig()
 	}
 
-	cfg.setStorageType()
-
 	cfg.Store.UseStore = cfg.isActiveStore()
 
 	return cfg, nil
 }
 func (s *ServerConfig) isActiveStore() bool {
-	return s.Storage.SType != StorageTypePostgres && s.Store.FileStoragePath != ""
+	return !s.IsPgStoreStorage() && s.Store.FileStoragePath != ""
 }
-func (s *ServerConfig) setStorageType() {
-	switch s.Storage.ConnectionString {
-	case "":
-		s.Storage.SType = StorageTypeMem
-	default:
-		s.Storage.SType = StorageTypePostgres
-	}
+
+func (s *ServerConfig) IsPgStoreStorage() bool {
+	return s.Storage.ConnectionString != ""
 }
 func InitDefaultConfig() *ServerConfig {
 	return &ServerConfig{
 		Addr: "localhost:8080",
 		Storage: S.StorageConfig{
-			SType: StorageTypeMem,
+			ConnectionString: "",
 		},
 		TemplatePath: "api/templates/metrics.html",
 		Env:          EnvDevelopment,

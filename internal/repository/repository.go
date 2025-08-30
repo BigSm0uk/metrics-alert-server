@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/storage"
 	"github.com/bigsm0uk/metrics-alert-server/internal/config"
@@ -10,15 +9,9 @@ import (
 )
 
 func InitRepository(ctx context.Context, cfg *config.ServerConfig) (interfaces.MetricsRepository, error) {
-	switch cfg.Storage.SType {
-	case config.StorageTypeMem:
-		return NewMemRepository(storage.NewMemStorage()), nil
-	case config.StorageTypePostgres:
-		if cfg.Storage.ConnectionString == "" {
-			return nil, fmt.Errorf("connection string is required for postgres storage")
-		}
+	if cfg.IsPgStoreStorage() {
 		return NewPostgresRepository(ctx, &cfg.Storage)
-	default:
-		return nil, fmt.Errorf("unsupported storage type: %s", cfg.Storage.SType)
+	} else {
+		return NewMemRepository(storage.NewMemStorage()), nil
 	}
 }

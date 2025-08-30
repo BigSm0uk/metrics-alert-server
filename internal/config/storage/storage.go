@@ -1,7 +1,6 @@
 package storage
 
 type StorageConfig struct {
-	SType            string
 	ConnectionString string `yaml:"connection_string" env:"DATABASE_DSN"`
 	MaxConns         int32  `yaml:"max_conns" env-default:"25"`
 	MinConns         int32  `yaml:"min_conns" env-default:"5"`
