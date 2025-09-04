@@ -1,5 +1,7 @@
 package domain
 
+import "github.com/goccy/go-json"
+
 const (
 	Counter = "counter"
 	Gauge   = "gauge"
@@ -16,4 +18,12 @@ type Metrics struct {
 	Delta *int64   `json:"delta,omitempty"`
 	Value *float64 `json:"value,omitempty"`
 	Hash  string   `json:"hash,omitempty"`
+}
+
+func (m *Metrics) String() string {
+	json, err := json.Marshal(m)
+	if err != nil {
+		return ""
+	}
+	return string(json)
 }

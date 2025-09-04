@@ -10,6 +10,7 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/bigsm0uk/metrics-alert-server/pkg/util"
+	"github.com/bigsm0uk/metrics-alert-server/pkg/util/hasher"
 )
 
 type MetricsSender struct {
@@ -30,7 +31,7 @@ func NewMetricsSender(serverURL string) *MetricsSender {
 	}
 }
 
-func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics) error {
+func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics, key string) error {
 
 	if len(metrics) == 0 {
 		zl.Log.Debug("no metrics to send, skipping")
@@ -45,12 +46,13 @@ func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics) error {
 
 	url := fmt.Sprintf("%s/updates", s.serverURL)
 
-	resp, err := s.client.R().
-		SetHeader("Content-Type", "application/json").
-		SetHeader("Content-Encoding", "gzip").
-		SetHeader("Accept-Encoding", "gzip").
-		SetBody(compressedData).
-		Post(url)
+	resp, err := s.client.R(). //TODO если ключ пустой, то не нужно устанавливать хеш
+					SetHeader("Content-Type", "application/json").
+					SetHeader("Content-Encoding", "gzip").
+					SetHeader("Accept-Encoding", "gzip").
+					SetHeader("HashSHA256", hasher.Hash(string(compressedData), key)).
+					SetBody(compressedData).
+					Post(url)
 
 	if err != nil {
 		zl.Log.Error("failed to send metrics batch",
@@ -68,7 +70,7 @@ func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics) error {
 }
 
 // SendMetricV2 отправляет одну метрику со сжатием
-func (s *MetricsSender) SendMetricV2(metric domain.Metrics) error {
+func (s *MetricsSender) SendMetricV2(metric domain.Metrics, key string) error {
 	compressedData, err := util.CompressJSON(metric)
 	if err != nil {
 		zl.Log.Error("failed to compress metric",
@@ -82,6 +84,7 @@ func (s *MetricsSender) SendMetricV2(metric domain.Metrics) error {
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Content-Encoding", "gzip").
 		SetHeader("Accept-Encoding", "gzip").
+		SetHeader("HashSHA256", hasher.Hash(string(compressedData), key)).
 		SetBody(compressedData).
 		Post(url)
 

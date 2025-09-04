@@ -36,7 +36,7 @@ func (a *Server) Run() error {
 	}
 
 	go func() {
-		zl.Log.Info("starting server", zap.String("Addr", a.cfg.Addr))
+		zl.Log.Info("starting server", zap.String("Addr", "http://"+a.cfg.Addr))
 
 		ctx := context.Background()
 		a.Ms.StartProcess(ctx)

@@ -37,7 +37,7 @@ func (a *Agent) Run() error {
 
 		case <-reportTicker.C:
 			metrics := a.Collector.GetMetrics()
-			if err := a.Sender.SendMetricsV2(metrics); err != nil {
+			if err := a.Sender.SendMetricsV2(metrics, a.Cfg.Key); err != nil {
 				zl.Log.Error("failed to send metrics", zap.Error(err))
 			} else {
 				zl.Log.Info("metrics sent", zap.Int("count", len(metrics)))
