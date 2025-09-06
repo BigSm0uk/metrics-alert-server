@@ -28,7 +28,7 @@ func NewServer(cfg *config.ServerConfig, h *handler.MetricHandler, ms interfaces
 }
 
 func (a *Server) Run() error {
-	r := router.NewRouter(a.h)
+	r := router.NewRouter(a.h, a.cfg.Key)
 
 	srv := &http.Server{
 		Addr:    a.cfg.Addr,

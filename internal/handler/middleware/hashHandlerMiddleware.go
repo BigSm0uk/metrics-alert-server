@@ -10,7 +10,7 @@ import (
 
 func HashHandlerMiddleware(next http.Handler, key string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if key != "" {
+		if key == "" {
 			next.ServeHTTP(w, r)
 			return
 		}

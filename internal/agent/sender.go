@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/goccy/go-json"
 	"go.uber.org/zap"
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
@@ -37,8 +38,13 @@ func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics, key string) erro
 		zl.Log.Debug("no metrics to send, skipping")
 		return nil
 	}
+	jsonMetrics, err := json.Marshal(metrics)
+	if err != nil {
+		zl.Log.Error("failed to marshal metrics", zap.Error(err))
+		return err
+	}
 
-	compressedData, err := util.CompressJSON(metrics)
+	compressedData, err := util.CompressJSON(jsonMetrics)
 	if err != nil {
 		zl.Log.Error("failed to compress metrics", zap.Error(err))
 		return err
@@ -46,13 +52,14 @@ func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics, key string) erro
 
 	url := fmt.Sprintf("%s/updates", s.serverURL)
 
-	resp, err := s.client.R(). //TODO если ключ пустой, то не нужно устанавливать хеш
-					SetHeader("Content-Type", "application/json").
-					SetHeader("Content-Encoding", "gzip").
-					SetHeader("Accept-Encoding", "gzip").
-					SetHeader("HashSHA256", hasher.Hash(string(compressedData), key)).
-					SetBody(compressedData).
-					Post(url)
+	req := s.client.R(). //TODO если ключ пустой, то не нужно устанавливать хеш
+				SetHeader("Content-Type", "application/json").
+				SetHeader("Content-Encoding", "gzip")
+	if key != "" {
+		req.SetHeader("HashSHA256", hasher.Hash(string(jsonMetrics), key))
+	}
+	req.SetBody(compressedData)
+	resp, err := req.Post(url)
 
 	if err != nil {
 		zl.Log.Error("failed to send metrics batch",
@@ -71,7 +78,12 @@ func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics, key string) erro
 
 // SendMetricV2 отправляет одну метрику со сжатием
 func (s *MetricsSender) SendMetricV2(metric domain.Metrics, key string) error {
-	compressedData, err := util.CompressJSON(metric)
+	jsonMetric, err := json.Marshal(metric)
+	if err != nil {
+		zl.Log.Error("failed to marshal metric", zap.Error(err))
+		return err
+	}
+	compressedData, err := util.CompressJSON(jsonMetric)
 	if err != nil {
 		zl.Log.Error("failed to compress metric",
 			zap.String("metric", metric.ID),
@@ -80,13 +92,14 @@ func (s *MetricsSender) SendMetricV2(metric domain.Metrics, key string) error {
 	}
 
 	url := fmt.Sprintf("%s/update", s.serverURL)
-	resp, err := s.client.R().
+	req := s.client.R().
 		SetHeader("Content-Type", "application/json").
-		SetHeader("Content-Encoding", "gzip").
-		SetHeader("Accept-Encoding", "gzip").
-		SetHeader("HashSHA256", hasher.Hash(string(compressedData), key)).
-		SetBody(compressedData).
-		Post(url)
+		SetHeader("Content-Encoding", "gzip")
+	if key != "" {
+		req.SetHeader("HashSHA256", hasher.Hash(string(jsonMetric), key))
+	}
+	req.SetBody(compressedData)
+	resp, err := req.Post(url)
 
 	if err != nil {
 		zl.Log.Error("failed to send metric",
