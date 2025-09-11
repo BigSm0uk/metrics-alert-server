@@ -49,7 +49,7 @@ jobs:
       - name: Setup autotest binary
         run: |
           chmod -R +x $GITHUB_WORKSPACE/.tools
-          mv $GITHUB_WORKSPACE/.tools/metricstest /usr/local/bin/metricstest
+          mv $GITHUB_WORKSPACE/.tools/metricstest_v2 /usr/local/bin/metricstest
           mv $GITHUB_WORKSPACE/.tools/random /usr/local/bin/random
 
       - name: Setup go deps
