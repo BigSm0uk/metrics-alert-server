@@ -8,6 +8,7 @@ import (
 	"github.com/goccy/go-json"
 	"go.uber.org/zap"
 
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/semaphore"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/bigsm0uk/metrics-alert-server/pkg/util"
@@ -114,4 +115,25 @@ func (s *MetricsSender) SendMetricV2(metric domain.Metrics, key string) error {
 		zap.Int("compressed_size", len(compressedData)))
 
 	return nil
+}
+
+type Collector interface {
+	GetMetrics() []domain.Metrics
+}
+
+func (s *MetricsSender) RunProcess(reportInterval uint, collector Collector, sem *semaphore.Semaphore, key string) {
+	ticker := time.NewTicker(time.Duration(reportInterval) * time.Second)
+	defer ticker.Stop()
+
+	for {
+		<-ticker.C
+		metrics := collector.GetMetrics()
+		go func() {
+			sem.Acquire()
+			defer sem.Release()
+			if err := s.SendMetricsV2(metrics, key); err != nil {
+				zl.Log.Error("failed to send metrics", zap.Error(err))
+			}
+		}()
+	}
 }

@@ -25,7 +25,7 @@ func InitLogger(env string) {
 
 func developmentLogger() *zap.Logger {
 	cfg := zap.Config{
-		Level:       zap.NewAtomicLevelAt(zap.InfoLevel),
+		Level:       zap.NewAtomicLevelAt(zap.DebugLevel),
 		Development: true,
 		Encoding:    "console",
 		EncoderConfig: zapcore.EncoderConfig{
