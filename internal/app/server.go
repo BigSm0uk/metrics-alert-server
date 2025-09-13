@@ -28,7 +28,7 @@ func NewServer(cfg *config.ServerConfig, h *handler.MetricHandler, ms interfaces
 }
 
 func (a *Server) Run() error {
-	r := router.NewRouter(a.h)
+	r := router.NewRouter(a.h, a.cfg.Key)
 
 	srv := &http.Server{
 		Addr:    a.cfg.Addr,
@@ -36,7 +36,7 @@ func (a *Server) Run() error {
 	}
 
 	go func() {
-		zl.Log.Info("starting server", zap.String("Addr", a.cfg.Addr))
+		zl.Log.Info("starting server", zap.String("Addr", "http://"+a.cfg.Addr))
 
 		ctx := context.Background()
 		a.Ms.StartProcess(ctx)

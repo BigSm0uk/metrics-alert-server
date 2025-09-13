@@ -25,6 +25,7 @@ type ServerConfig struct {
 	TemplatePath string            `yaml:"template_path" env-default:"api/templates/metrics.html"`
 	Addr         string            `env:"ADDRESS"`
 	Store        Store.StoreConfig `required:"true"`
+	Key          string            `env:"KEY"`
 }
 
 func LoadServerConfig() (*ServerConfig, error) {
@@ -37,6 +38,8 @@ func LoadServerConfig() (*ServerConfig, error) {
 	flag.StringVar(&cfg.Store.StoreInterval, "i", "300", "store interval")
 
 	flag.StringVar(&cfg.Storage.ConnectionString, "d", "", "database connection string")
+
+	flag.StringVar(&cfg.Key, "k", "", "key")
 
 	flag.Parse()
 

@@ -12,6 +12,8 @@ type AgentConfig struct {
 	Addr           string `env:"ADDRESS"`
 	ReportInterval uint   `env:"REPORT_INTERVAL"`
 	PollInterval   uint   `env:"POLL_INTERVAL"`
+	RateLimit      uint   `env:"RATE_LIMIT"`
+	Key            string `env:"KEY"`
 }
 
 func LoadAgentConfig() (*AgentConfig, error) {
@@ -20,6 +22,8 @@ func LoadAgentConfig() (*AgentConfig, error) {
 	flag.StringVar(&cfg.Addr, "a", "localhost:8080", "http server address")
 	flag.UintVar(&cfg.ReportInterval, "r", 10, "report interval")
 	flag.UintVar(&cfg.PollInterval, "p", 2, "poll interval")
+	flag.UintVar(&cfg.RateLimit, "l", 1, "rate limit")
+	flag.StringVar(&cfg.Key, "k", "1234567890", "key")
 	flag.Parse()
 
 	err := cleanenv.ReadEnv(cfg)

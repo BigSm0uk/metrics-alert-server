@@ -121,8 +121,8 @@ func (h *MetricHandler) UpdateMetricByBody(w http.ResponseWriter, r *http.Reques
 
 	updatedMetric, err := h.service.GetEnrichMetric(ctx, m.ID, m.MType)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		zl.Log.Error("failed to get enriched metric", zap.Error(err))
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -135,9 +135,8 @@ func (h *MetricHandler) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
 
 	m, err := h.service.GetAllMetrics(ctx)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
 		zl.Log.Error("failed to get all metrics", zap.Error(err))
-		w.Write([]byte("failed to get all metrics"))
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -145,7 +144,8 @@ func (h *MetricHandler) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	if err := h.tmpl.Execute(w, m); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		zl.Log.Error("failed to execute template", zap.Error(err))
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 }
@@ -170,6 +170,7 @@ func (h *MetricHandler) GetMetric(w http.ResponseWriter, r *http.Request) {
 	m, err := h.service.GetMetric(ctx, dto.ID, dto.Type)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(err.Error()))
 		return
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -248,8 +249,8 @@ func (h *MetricHandler) Ping(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	err := h.service.Ping(ctx)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Database connection failed"))
+		zl.Log.Error("database connection failed", zap.Error(err))
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")

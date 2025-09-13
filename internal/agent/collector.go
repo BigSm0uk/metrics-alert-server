@@ -1,11 +1,18 @@
 package agent
 
 import (
+	"context"
 	"math/rand/v2"
 	"runtime"
+	"strconv"
 	"sync"
+	"time"
 
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/mem"
+	"go.uber.org/zap"
 )
 
 type MetricsCollector struct {
@@ -16,6 +23,47 @@ type MetricsCollector struct {
 
 func NewMetricsCollector() *MetricsCollector {
 	return &MetricsCollector{metrics: make(map[string]domain.Metrics)}
+}
+func (c *MetricsCollector) CollectSystemMetrics() {
+	v, err := mem.VirtualMemory()
+	if err != nil {
+		zl.Log.Error("error collecting system metrics", zap.Error(err))
+		return
+	}
+
+	cpuPercents, err := cpu.Percent(0, true)
+	if err != nil {
+		zl.Log.Error("error collecting system metrics", zap.Error(err))
+		return
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	totalMem := float64(v.Total)
+	c.metrics["TotalMemory"] = domain.Metrics{
+		ID:    "TotalMemory",
+		MType: domain.Gauge,
+		Value: &totalMem,
+	}
+
+	freeMem := float64(v.Free)
+	c.metrics["FreeMemory"] = domain.Metrics{
+		ID:    "FreeMemory",
+		MType: domain.Gauge,
+		Value: &freeMem,
+	}
+
+	for i, percent := range cpuPercents {
+		name := "CPUutilization" + strconv.Itoa(i+1)
+		val := percent
+		c.metrics[name] = domain.Metrics{
+			ID:    name,
+			MType: domain.Gauge,
+			Value: &val,
+		}
+	}
+	zl.Log.Debug("collected system metrics")
 }
 func (c *MetricsCollector) CollectRuntimeMetrics() {
 	var m runtime.MemStats
@@ -71,6 +119,7 @@ func (c *MetricsCollector) CollectRuntimeMetrics() {
 		MType: domain.Counter,
 		Delta: &c.pollCount,
 	}
+	zl.Log.Debug("collected runtime metrics")
 }
 
 func (c *MetricsCollector) GetMetrics() []domain.Metrics {
@@ -82,4 +131,26 @@ func (c *MetricsCollector) GetMetrics() []domain.Metrics {
 		result = append(result, metric)
 	}
 	return result
+}
+func (c *MetricsCollector) RunProcess(ctx context.Context, wg *sync.WaitGroup, pollInterval uint) {
+	ticker := time.NewTicker(time.Duration(pollInterval) * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				c.CollectRuntimeMetrics()
+			}()
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				c.CollectSystemMetrics()
+			}()
+		}
+	}
 }

@@ -21,17 +21,13 @@ func GetDefault[T Number](value *T) T {
 }
 
 // CompressJSON сжимает данные в JSON формате с использованием gzip
-func CompressJSON(data interface{}) ([]byte, error) {
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		return nil, err
-	}
+func CompressJSON(data []byte) ([]byte, error) {
 
 	var buf bytes.Buffer
 
 	writer := gzip.NewWriter(&buf)
 
-	_, err = writer.Write(jsonData)
+	_, err := writer.Write(data)
 	if err != nil {
 		writer.Close()
 		return nil, err
