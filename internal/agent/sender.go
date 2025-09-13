@@ -1,7 +1,9 @@
 package agent
 
 import (
+	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -121,19 +123,22 @@ type Collector interface {
 	GetMetrics() []domain.Metrics
 }
 
-func (s *MetricsSender) RunProcess(reportInterval uint, collector Collector, sem *semaphore.Semaphore, key string) {
+func (s *MetricsSender) RunProcess(ctx context.Context, wg *sync.WaitGroup, reportInterval uint, collector Collector, sem *semaphore.Semaphore, key string) {
 	ticker := time.NewTicker(time.Duration(reportInterval) * time.Second)
 	defer ticker.Stop()
-
 	for {
-		<-ticker.C
-		metrics := collector.GetMetrics()
-		go func() {
-			sem.Acquire()
-			defer sem.Release()
-			if err := s.SendMetricsV2(metrics, key); err != nil {
-				zl.Log.Error("failed to send metrics", zap.Error(err))
-			}
-		}()
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			metrics := collector.GetMetrics()
+			wg.Go(func() {
+				sem.Acquire()
+				defer sem.Release()
+				if err := s.SendMetricsV2(metrics, key); err != nil {
+					zl.Log.Error("failed to send metrics", zap.Error(err))
+				}
+			})
+		}
 	}
 }

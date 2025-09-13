@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"math/rand/v2"
 	"runtime"
 	"strconv"
@@ -131,13 +132,17 @@ func (c *MetricsCollector) GetMetrics() []domain.Metrics {
 	}
 	return result
 }
-func (c *MetricsCollector) RunProcess(pollInterval uint) {
+func (c *MetricsCollector) RunProcess(ctx context.Context, wg *sync.WaitGroup, pollInterval uint) {
 	ticker := time.NewTicker(time.Duration(pollInterval) * time.Second)
 	defer ticker.Stop()
 
 	for {
-		<-ticker.C
-		go c.CollectRuntimeMetrics()
-		go c.CollectSystemMetrics()
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			wg.Go(c.CollectRuntimeMetrics)
+			wg.Go(c.CollectSystemMetrics)
+		}
 	}
 }

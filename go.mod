@@ -1,6 +1,6 @@
 module github.com/bigsm0uk/metrics-alert-server
 
-go 1.24.5
+go 1.25.1
 
 require (
 	github.com/Masterminds/squirrel v1.5.4

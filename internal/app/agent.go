@@ -1,12 +1,11 @@
 package app
 
 import (
+	"context"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
-	"time"
-
-	"go.uber.org/zap"
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/agent"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/semaphore"
@@ -26,38 +25,17 @@ func NewAgent(cfg *config.AgentConfig) *Agent {
 }
 
 func (a *Agent) Run() error {
-	zl.Log.Info("starting agent, to send metrics to", zap.String("Addr", a.Cfg.Addr))
 
-	pollTicker := time.NewTicker(time.Duration(a.Cfg.PollInterval) * time.Second)
-	reportTicker := time.NewTicker(time.Duration(a.Cfg.ReportInterval) * time.Second)
+	wg := sync.WaitGroup{}
 
-	defer pollTicker.Stop()
-	defer reportTicker.Stop()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
-	for {
-		select {
-		case <-pollTicker.C:
-			a.Collector.CollectRuntimeMetrics()
-			zl.Log.Debug("metrics collected")
+	go a.Collector.RunProcess(ctx, &wg, a.Cfg.PollInterval)
+	go a.Sender.RunProcess(ctx, &wg, a.Cfg.ReportInterval, a.Collector, a.Sem, a.Cfg.Key)
 
-		case <-reportTicker.C:
-			metrics := a.Collector.GetMetrics()
-			if err := a.Sender.SendMetricsV2(metrics, a.Cfg.Key); err != nil {
-				zl.Log.Error("failed to send metrics", zap.Error(err))
-			} else {
-				zl.Log.Info("metrics sent", zap.Int("count", len(metrics)))
-			}
-		}
-	}
-}
-func (a *Agent) RunV2() error {
-
-	go a.Collector.RunProcess(a.Cfg.PollInterval)
-	go a.Sender.RunProcess(a.Cfg.ReportInterval, a.Collector, a.Sem, a.Cfg.Key)
-
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-	<-quit
+	<-ctx.Done()
+	wg.Wait()
 
 	zl.Log.Info("shutting down agent ...")
 
