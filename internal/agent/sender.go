@@ -132,13 +132,15 @@ func (s *MetricsSender) RunProcess(ctx context.Context, wg *sync.WaitGroup, repo
 			return
 		case <-ticker.C:
 			metrics := collector.GetMetrics()
-			wg.Go(func() {
+			go func() {
+				wg.Add(1)
+				defer wg.Done()
 				sem.Acquire()
 				defer sem.Release()
 				if err := s.SendMetricsV2(metrics, key); err != nil {
 					zl.Log.Error("failed to send metrics", zap.Error(err))
 				}
-			})
+			}()
 		}
 	}
 }
