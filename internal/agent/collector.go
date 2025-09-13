@@ -141,13 +141,13 @@ func (c *MetricsCollector) RunProcess(ctx context.Context, wg *sync.WaitGroup, p
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			wg.Add(1)
 			go func() {
-				wg.Add(1)
 				defer wg.Done()
 				c.CollectRuntimeMetrics()
 			}()
+			wg.Add(1)
 			go func() {
-				wg.Add(1)
 				defer wg.Done()
 				c.CollectSystemMetrics()
 			}()

@@ -132,8 +132,8 @@ func (s *MetricsSender) RunProcess(ctx context.Context, wg *sync.WaitGroup, repo
 			return
 		case <-ticker.C:
 			metrics := collector.GetMetrics()
+			wg.Add(1)
 			go func() {
-				wg.Add(1)
 				defer wg.Done()
 				sem.Acquire()
 				defer sem.Release()
