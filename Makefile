@@ -82,7 +82,7 @@ run-server: build-server
 # Run agent
 run-agent: build-agent
 	@echo "[+] Starting agent..."
-	./$(AGENT_BIN)
+	./$(AGENT_BIN) 
 
 # Clean build artifacts
 clean:

@@ -12,7 +12,7 @@ import (
 	lm "github.com/bigsm0uk/metrics-alert-server/internal/handler/middleware"
 )
 
-func NewRouter(h *handler.MetricHandler) *chi.Mux {
+func NewRouter(h *handler.MetricHandler, key string) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.GetHead)
@@ -33,20 +33,26 @@ func NewRouter(h *handler.MetricHandler) *chi.Mux {
 	r.Use(lm.GzipDecompressMiddleware)
 	r.Use(lm.GzipCompressMiddleware)
 
-	MapRoutes(r, h)
+	MapRoutes(r, h, key)
 
 	return r
 }
 
-func MapRoutes(r *chi.Mux, h *handler.MetricHandler) {
+func MapRoutes(r *chi.Mux, h *handler.MetricHandler, key string) {
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("OK"))
 	})
 	r.Route("/update", func(r chi.Router) {
+		r.Use(func(next http.Handler) http.Handler {
+			return lm.HashHandlerMiddleware(next, key)
+		})
 		r.Post("/", h.UpdateMetricByBody)
 		r.Post("/{type}/{id}/{value}", h.UpdateMetricByParam)
 	})
 	r.Route("/updates", func(r chi.Router) {
+		r.Use(func(next http.Handler) http.Handler {
+			return lm.HashHandlerMiddleware(next, key)
+		})
 		r.Post("/", h.UpdateMetricsBatch)
 	})
 	r.Get("/", h.GetAllMetrics)
