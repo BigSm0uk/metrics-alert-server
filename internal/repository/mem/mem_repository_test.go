@@ -1,4 +1,4 @@
-package repository
+package mem
 
 import (
 	"context"
@@ -75,7 +75,7 @@ func TestMemRepository_Get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.r.Get(context.Background(), tt.args.id, tt.args.t)
+			got, err := tt.r.Metric(context.Background(), tt.args.id, tt.args.t)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
@@ -174,7 +174,7 @@ func TestMemRepository_GetAll(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.r.GetAll(context.Background())
+			got, err := tt.r.MetricList(context.Background())
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {

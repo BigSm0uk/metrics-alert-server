@@ -1,0 +1,8 @@
+name: id
+in: path
+required: true
+description: Идентификатор метрики
+schema:
+  type: string
+x-go-name: ID
+x-go-type: string

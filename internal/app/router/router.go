@@ -4,16 +4,18 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/bigsm0uk/metrics-alert-server/internal/handler"
+	lm "github.com/bigsm0uk/metrics-alert-server/internal/handler/middleware"
+	oapiMetric "github.com/bigsm0uk/metrics-alert-server/pkg/openapi/metric"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-
-	"github.com/bigsm0uk/metrics-alert-server/internal/handler"
-	lm "github.com/bigsm0uk/metrics-alert-server/internal/handler/middleware"
 )
 
 func NewRouter(h *handler.MetricHandler, key string) *chi.Mux {
 	r := chi.NewRouter()
+
+	// Глобальные middleware
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.GetHead)
 	r.Use(cors.Handler(cors.Options{
@@ -33,41 +35,65 @@ func NewRouter(h *handler.MetricHandler, key string) *chi.Mux {
 	r.Use(lm.GzipDecompressMiddleware)
 	r.Use(lm.GzipCompressMiddleware)
 
-	MapRoutes(r, h, key)
+	// Создаем wrapper для handler с hash middleware для определенных маршрутов
+	wrapper := &MetricHandlerWrapper{
+		handler: h,
+		key:     key,
+	}
+
+	// Монтируем OpenAPI сгенерированный роутер
+	oapiMetric.HandlerFromMux(wrapper, r)
 
 	return r
 }
 
-func MapRoutes(r *chi.Mux, h *handler.MetricHandler, key string) {
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("OK"))
-	})
-	r.Route("/update", func(r chi.Router) {
-		r.Use(func(next http.Handler) http.Handler {
-			return lm.HashHandlerMiddleware(next, key)
-		})
-		r.Post("/", h.UpdateMetricByBody)
-		r.Post("/{type}/{id}/{value}", h.UpdateMetricByParam)
-	})
-	r.Route("/updates", func(r chi.Router) {
-		r.Use(func(next http.Handler) http.Handler {
-			return lm.HashHandlerMiddleware(next, key)
-		})
-		r.Post("/", h.UpdateMetricsBatch)
-	})
-	r.Get("/", h.GetAllMetrics)
-	r.Route("/value", func(r chi.Router) {
-		r.Post("/", h.EnrichMetric)
-		r.Get("/{type}/{id}", h.GetMetric)
-	})
-	r.Get("/ping", h.Ping)
+// MetricHandlerWrapper оборачивает MetricHandler и добавляет hash middleware для нужных методов
+type MetricHandlerWrapper struct {
+	handler *handler.MetricHandler
+	key     string
+}
 
-	r.Get("/docs", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html")
-		http.ServeFile(w, r, "docs/redoc.html")
-	})
-	r.Get("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/yaml")
-		http.ServeFile(w, r, "api/openapi.yaml")
-	})
+func (w *MetricHandlerWrapper) GetAllMetrics(rw http.ResponseWriter, r *http.Request) {
+	w.handler.GetAllMetrics(rw, r)
+}
+
+func (w *MetricHandlerWrapper) GetDocs(rw http.ResponseWriter, r *http.Request) {
+	w.handler.GetDocs(rw, r)
+}
+
+func (w *MetricHandlerWrapper) HealthCheck(rw http.ResponseWriter, r *http.Request) {
+	w.handler.HealthCheck(rw, r)
+}
+
+func (w *MetricHandlerWrapper) GetOpenAPI(rw http.ResponseWriter, r *http.Request) {
+	w.handler.GetOpenAPI(rw, r)
+}
+
+func (w *MetricHandlerWrapper) Ping(rw http.ResponseWriter, r *http.Request) {
+	w.handler.Ping(rw, r)
+}
+
+func (w *MetricHandlerWrapper) UpdateOrCreateMetricByBody(rw http.ResponseWriter, r *http.Request) {
+	lm.HashHandlerMiddleware(http.HandlerFunc(w.handler.UpdateOrCreateMetricByBody), w.key).ServeHTTP(rw, r)
+}
+
+func (w *MetricHandlerWrapper) UpdateOrCreateMetricByParam(rw http.ResponseWriter, r *http.Request, mType oapiMetric.UpdateOrCreateMetricByParamParamsType, id oapiMetric.ID, value oapiMetric.Value) {
+	lm.HashHandlerMiddleware(
+		http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
+			w.handler.UpdateOrCreateMetricByParam(writer, req, mType, id, value)
+		}),
+		w.key,
+	).ServeHTTP(rw, r)
+}
+
+func (w *MetricHandlerWrapper) UpdateOrCreateMetricsBatch(rw http.ResponseWriter, r *http.Request) {
+	lm.HashHandlerMiddleware(http.HandlerFunc(w.handler.UpdateOrCreateMetricsBatch), w.key).ServeHTTP(rw, r)
+}
+
+func (w *MetricHandlerWrapper) GetValueByBody(rw http.ResponseWriter, r *http.Request) {
+	w.handler.GetValueByBody(rw, r)
+}
+
+func (w *MetricHandlerWrapper) GetValueByParam(rw http.ResponseWriter, r *http.Request, mType oapiMetric.GetValueByParamParamsType, id oapiMetric.ID) {
+	w.handler.GetValueByParam(rw, r, mType, id)
 }

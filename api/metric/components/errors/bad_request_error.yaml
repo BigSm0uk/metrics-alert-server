@@ -1,0 +1,13 @@
+type: object
+required:
+  - status
+  - message
+properties:
+  status:
+    type: integer
+    description: HTTP-код ошибки
+    example: 400
+  message:
+    type: string
+    description: Описание ошибки
+    example: "Invalid metric type"

@@ -1,0 +1,13 @@
+type: object
+required:
+  - status
+  - message
+properties:
+  status:
+    type: integer
+    description: HTTP-код ошибки
+    example: 500
+  message:
+    type: string
+    description: Описание ошибки
+    example: "An unexpected error occurred"

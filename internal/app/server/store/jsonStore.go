@@ -9,10 +9,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/config/store"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
-	"github.com/bigsm0uk/metrics-alert-server/internal/config/store"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
-	"github.com/bigsm0uk/metrics-alert-server/internal/interfaces"
+	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
 
 	"go.uber.org/zap"
 )
@@ -92,7 +92,7 @@ func (s *JSONStore) WriteMetric(metric domain.Metrics) error {
 	return nil
 }
 func (s *JSONStore) SaveAllMetrics(ctx context.Context) error {
-	metrics, err := s.r.GetAll(ctx)
+	metrics, err := s.r.MetricList(ctx)
 	if err != nil {
 		return err
 	}

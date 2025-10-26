@@ -5,12 +5,12 @@ import (
 	"io"
 	"time"
 
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/config"
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/server/store"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
-	"github.com/bigsm0uk/metrics-alert-server/internal/config"
+	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
 	"github.com/bigsm0uk/metrics-alert-server/internal/handler"
-	"github.com/bigsm0uk/metrics-alert-server/internal/interfaces"
 	"github.com/bigsm0uk/metrics-alert-server/internal/repository"
-	"github.com/bigsm0uk/metrics-alert-server/internal/server/store"
 	"github.com/bigsm0uk/metrics-alert-server/internal/service"
 )
 
@@ -21,81 +21,6 @@ type Container struct {
 	store      interfaces.MetricsStore
 	service    *service.MetricService
 	handler    *handler.MetricHandler
-	server     *Server
-}
-
-// NewContainer создает новый DI контейнер
-func NewContainer() *Container {
-	return &Container{}
-}
-
-// LoadConfig загружает конфигурацию
-func (c *Container) LoadConfig() *Container {
-	cfg, err := config.LoadServerConfig()
-	if err != nil {
-		panic(err)
-	}
-	c.config = cfg
-	return c
-}
-
-// InitLogger инициализирует логгер
-func (c *Container) InitLogger() *Container {
-	zl.InitLogger(c.config.Env)
-	return c
-}
-
-// InitRepository инициализирует репозиторий
-func (c *Container) InitRepository() *Container {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	repo, err := repository.InitRepository(ctx, c.config)
-	if err != nil {
-		panic(err)
-	}
-	c.repository = repo
-	return c
-}
-
-// InitStore инициализирует хранилище
-func (c *Container) InitStore() *Container {
-	st, err := store.InitStore(c.repository, &c.config.Store)
-	if err != nil {
-		panic(err)
-	}
-	c.store = st
-	return c
-}
-
-// InitService инициализирует сервис
-func (c *Container) InitService() *Container {
-	c.service = service.NewService(c.repository, c.store)
-	return c
-}
-
-// InitHandler инициализирует обработчик
-func (c *Container) InitHandler() *Container {
-	c.handler = handler.NewMetricHandler(c.service, c.config.TemplatePath)
-	return c
-}
-
-// RestoreData восстанавливает данные из хранилища
-func (c *Container) RestoreData() *Container {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	if c.config.Store.Restore && c.store.IsActive() {
-		if err := c.store.Restore(ctx); err != nil && err != io.EOF {
-			panic(err)
-		}
-	}
-	return c
-}
-
-// Build создает готовое приложение
-func (c *Container) Build() (*Server, error) {
-	c.server = NewServer(c.config, c.handler, c.store)
-	return c.server, nil
 }
 
 // GetRepository возвращает репозиторий (для тестирования)
@@ -113,8 +38,106 @@ func (c *Container) GetService() *service.MetricService {
 	return c.service
 }
 
-// MustBootstrap Накатывает миграции в базу данных
-func (c *Container) MustBootstrap() *Container {
-	c.repository.MustBootstrap(context.Background())
-	return c
+// ContainerOptions представляет функцию для инициализации контейнера
+type ContainerOptions func(*Container) error
+
+// NewContainerWithOptions создает новый контейнер с заданными опциями
+func NewContainerWithOptions(opts ...ContainerOptions) (*Container, error) {
+	c := &Container{}
+	for _, opt := range opts {
+		err := opt(c)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return c, nil
+}
+
+// WithConfig инициализирует конфигурацию
+func WithConfig() ContainerOptions {
+	return func(c *Container) error {
+		cfg, err := config.LoadServerConfig()
+		if err != nil {
+			return err
+		}
+		c.config = cfg
+		return nil
+	}
+}
+
+// WithLogger инициализирует логгер
+func WithLogger() ContainerOptions {
+	return func(c *Container) error {
+		zl.InitLogger(c.config.Env)
+		return nil
+	}
+}
+
+// WithRepository инициализирует репозиторий
+func WithRepository() ContainerOptions {
+	return func(c *Container) error {
+		repo, err := repository.InitRepository(context.Background(), c.config)
+		if err != nil {
+			return err
+		}
+		c.repository = repo
+		return nil
+	}
+}
+
+// WithStore инициализирует хранилище
+func WithStore() ContainerOptions {
+	return func(c *Container) error {
+		st, err := store.InitStore(c.repository, &c.config.Store)
+		if err != nil {
+			return err
+		}
+		c.store = st
+		return nil
+	}
+}
+
+// WithService инициализирует сервис
+func WithService() ContainerOptions {
+	return func(c *Container) error {
+		c.service = service.NewService(c.repository, c.store)
+		return nil
+	}
+}
+
+// WithHandler инициализирует обработчик
+func WithHandler() ContainerOptions {
+	return func(c *Container) error {
+		c.handler = handler.NewMetricHandler(c.service, c.config.TemplatePath)
+		return nil
+	}
+}
+
+// WithRestoreData инициализирует восстановление данных
+func WithRestoreData() ContainerOptions {
+	return func(c *Container) error {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if c.config.Store.Restore && c.store.IsActive() {
+			if err := c.store.Restore(ctx); err != nil && err != io.EOF {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+// WithBootstrap инициализирует миграции в базу данных
+func WithBootstrap() ContainerOptions {
+	return func(c *Container) error {
+		if err := c.repository.Bootstrap(context.Background()); err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+// Build создает новый сервер
+func Build(c *Container) *Server {
+	return NewServer(c.config, c.handler, c.store)
 }

@@ -1,0 +1,121 @@
+version: '3'
+
+vars:
+  GCI_VERSION: 'v0.13.6'
+  GOFUMPT_VERSION: 'v0.8.0'
+  OAPI_CODEGEN_VERSION: 'v2.4.0'
+  REDOCLY_VERSION: 'v2.7.0'
+
+  BIN_DIR: '{{.ROOT_DIR}}/bin'
+  NODE_MODULES_DIR: '{{.ROOT_DIR}}/node_modules/.bin'
+  OAPI_CODEGEN: '{{.BIN_DIR}}/oapi-codegen'
+  REDOCLY: '{{.NODE_MODULES_DIR}}/redocly'
+  GCI: '{{.BIN_DIR}}/gci'
+  GOFUMPT: '{{.BIN_DIR}}/gofumpt'
+
+tasks:
+  install-formatters:
+    desc: "Устанавливает форматтеры gci и gofumpt в ./bin"
+    summary: |
+      Эта задача проверяет наличие инструментов форматирования кода gofumpt и gci в директории bin.
+      Если инструменты не найдены, они будут автоматически установлены с указанными версиями.
+      
+      Используется:
+        - gofumpt: для форматирования кода Go
+        - gci: для сортировки импортов Go
+    cmds:
+      - |
+        [ -f "{{.GOFUMPT}}" ] || {
+          echo '📦 Устанавливаем gofumpt {{.GOFUMPT_VERSION}}...'
+          GOBIN="{{.BIN_DIR}}" go install mvdan.cc/gofumpt@{{.GOFUMPT_VERSION}}
+        }
+        [ -f "{{.GCI}}" ] || {
+          echo '📦 Устанавливаем gci {{.GCI_VERSION}}...'
+          GOBIN="{{.BIN_DIR}}" go install github.com/daixiang0/gci@{{.GCI_VERSION}}
+        }
+    status:
+      - test -x "{{.GOFUMPT}}"
+      - test -x "{{.GCI}}"
+
+  format:
+    desc: "Форматирует весь проект gofumpt + gci, исключая mocks"
+    summary: |
+      Форматирует все Go-файлы проекта с использованием gofumpt для стандартизации кода
+      и gci для сортировки импортов, исключая файлы в директориях mocks.
+      
+      Использует инструменты:
+        - gofumpt: для стандартизации форматирования
+        - gci: для сортировки импортов по стандартным группам
+    deps: [ install-formatters ]
+    cmds:
+      - |
+        echo "🧼 Форматируем через gofumpt ..."
+        
+        for module in "{{.MODULES}}"; do
+          if [ -d "$module" ]; then
+            echo "🧼 Форматируем $module"
+            find $module -type f -name '*.go' ! -path '*/mocks/*' -exec "{{.GOFUMPT}}" -extra -w {} +
+          fi
+        done
+      - |
+        echo "🎯 Сортируем импорты через gci ..."
+        
+        for module in "{{.MODULES}}"; do
+          if [ -d "$module" ]; then
+            echo "🎯 Сортируем импорты в $module"
+            find $module -type f -name '*.go' ! -path '*/mocks/*' -exec "{{.GCI}}" write -s standard -s default -s "prefix(github.com/bigsm0uk)" {} +
+          fi
+        done
+  redoc:install:
+    desc: "Устанавливает redocly в папку node_modules"
+    summary: |
+      Устанавливает redocly в папку node_modules
+      Используется:
+        - redocly: для генерации bundle OpenAPI
+    cmds:
+      - |
+        [ -f "{{.REDOCLY}}" ] || {
+          npm ci
+        }
+  redoc:bundle:
+    desc: "Генерация bundle OpenAPI через redocly"
+    summary: |
+      Генерация bundle OpenAPI через redocly
+      Используется:
+        - redocly: для генерации bundle OpenAPI
+    deps: [ redoc:install ]
+    cmds:
+      - |
+        "{{.REDOCLY}}" bundle -o api/metric/openapi.bundle.yaml api/metric/openapi.yaml 
+  oapi:install:
+    desc: "Устанавливает oapi-codegen в папку bin"
+    summary: |
+      Устанавливает oapi-codegen в папку bin
+      Используется:
+        - oapi-codegen: для генерации Go-кода из OpenAPI
+    cmds:
+      - |
+        [ -f "{{.OAPI_CODEGEN}}" ] || {
+          mkdir -p "{{.BIN_DIR}}"
+          GOBIN="{{.BIN_DIR}}" go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@{{.OAPI_CODEGEN_VERSION}}
+        }
+
+  oapi:gen:
+    desc: "Генерация Go-кода из OpenAPI через oapi-codegen"
+    deps: [ oapi:install, redoc:bundle ]
+    cmds:
+      - |
+        set -e
+        # Metric API
+        if [ -f "api/metric/openapi.bundle.yaml" ]; then
+          echo "🚀 Генерируем Metric API через oapi-codegen"
+          "{{.OAPI_CODEGEN}}" -generate types -o pkg/openapi/metric/oas_types_gen.go api/metric/openapi.bundle.yaml 2>&1
+          "{{.OAPI_CODEGEN}}" -generate chi -o pkg/openapi/metric/oas_server_gen.go api/metric/openapi.bundle.yaml 2>&1
+          "{{.OAPI_CODEGEN}}" -generate client -o pkg/openapi/metric/oas_client_gen.go api/metric/openapi.bundle.yaml 2>&1
+        fi
+  deps:update:
+    desc: "Обновление зависимостей в go.mod"
+    cmds:
+      - |
+        echo "🔄 Обновление зависимостей в go.mod"
+        go mod tidy

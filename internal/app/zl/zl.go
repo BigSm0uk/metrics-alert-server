@@ -4,7 +4,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/bigsm0uk/metrics-alert-server/internal/config"
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/config"
 )
 
 // Log будет доступен всему коду как синглтон.

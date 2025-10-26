@@ -9,7 +9,7 @@ import (
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
-	"github.com/bigsm0uk/metrics-alert-server/internal/interfaces"
+	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
 	"github.com/bigsm0uk/metrics-alert-server/pkg/util"
 )
 
@@ -22,8 +22,7 @@ func NewService(repository interfaces.MetricsRepository, store interfaces.Metric
 	return &MetricService{repository: repository, store: store}
 }
 func (s *MetricService) UpdateMetric(ctx context.Context, metric *domain.Metrics) error {
-	m, err := s.repository.Get(ctx, metric.ID, metric.MType)
-	//Пока база в памяти реальной ошибки быть не должно
+	m, err := s.repository.Metric(ctx, metric.ID, metric.MType)
 	if err != nil {
 		if errors.Is(err, domain.ErrMetricNotFound) {
 			zl.Log.Debug("new metric", zap.String("id", metric.ID), zap.String("type", metric.MType))
@@ -60,7 +59,7 @@ func (s *MetricService) UpdateMetric(ctx context.Context, metric *domain.Metrics
 	}
 
 	if s.store != nil && s.store.IsActive() && s.store.IsSyncMode() {
-		updatedMetric, _ := s.repository.Get(ctx, metric.ID, metric.MType)
+		updatedMetric, _ := s.repository.Metric(ctx, metric.ID, metric.MType)
 		if err := s.store.WriteMetric(*updatedMetric); err != nil {
 			zl.Log.Error("failed to save metric to store", zap.Error(err))
 			return err
@@ -83,7 +82,7 @@ func (s *MetricService) UpdateMetricsBatch(ctx context.Context, metrics []domain
 }
 
 func (s *MetricService) GetAllMetrics(ctx context.Context) ([]domain.Metrics, error) {
-	m, err := s.repository.GetAll(ctx)
+	m, err := s.repository.MetricList(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +90,7 @@ func (s *MetricService) GetAllMetrics(ctx context.Context) ([]domain.Metrics, er
 	return m, nil
 }
 func (s *MetricService) GetMetric(ctx context.Context, id, t string) (*domain.Metrics, error) {
-	m, err := s.repository.Get(ctx, id, t)
+	m, err := s.repository.Metric(ctx, id, t)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +98,7 @@ func (s *MetricService) GetMetric(ctx context.Context, id, t string) (*domain.Me
 	return m, nil
 }
 func (s *MetricService) GetEnrichMetric(ctx context.Context, id, mType string) (*domain.Metrics, error) {
-	return s.repository.Get(ctx, id, mType)
+	return s.repository.Metric(ctx, id, mType)
 }
 func (s *MetricService) Ping(ctx context.Context) error {
 	return s.repository.Ping(ctx)

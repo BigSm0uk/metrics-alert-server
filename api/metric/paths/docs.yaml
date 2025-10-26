@@ -1,0 +1,13 @@
+get:
+  summary: HTML-страница с документацией API
+  description: Возвращает HTML-страницу с документацией API
+  operationId: getDocs
+  tags:
+    - metric
+  responses:
+    '200':
+      description: HTML-страница с документацией API
+      content:
+        text/html:
+          schema:
+            type: string

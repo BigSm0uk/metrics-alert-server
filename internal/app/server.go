@@ -10,11 +10,11 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/config"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/router"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
-	"github.com/bigsm0uk/metrics-alert-server/internal/config"
+	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
 	"github.com/bigsm0uk/metrics-alert-server/internal/handler"
-	"github.com/bigsm0uk/metrics-alert-server/internal/interfaces"
 )
 
 type Server struct {

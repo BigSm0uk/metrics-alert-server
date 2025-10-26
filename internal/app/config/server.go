@@ -6,8 +6,8 @@ import (
 
 	"github.com/ilyakaznacheev/cleanenv"
 
-	S "github.com/bigsm0uk/metrics-alert-server/internal/config/storage"
-	Store "github.com/bigsm0uk/metrics-alert-server/internal/config/store"
+	S "github.com/bigsm0uk/metrics-alert-server/internal/app/config/storage"
+	Store "github.com/bigsm0uk/metrics-alert-server/internal/app/config/store"
 )
 
 const (

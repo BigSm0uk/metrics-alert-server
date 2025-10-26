@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/bigsm0uk/metrics-alert-server/internal/app"
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/config"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
-	"github.com/bigsm0uk/metrics-alert-server/internal/config"
 )
 
 func main() {
