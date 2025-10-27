@@ -106,7 +106,6 @@ tasks:
           echo "🚀 Генерируем Metric API через oapi-codegen"
           "{{.OAPI_CODEGEN}}" -generate types -o pkg/openapi/metric/oas_types_gen.go api/metric/openapi.bundle.yaml 2>&1
           "{{.OAPI_CODEGEN}}" -generate chi -o pkg/openapi/metric/oas_server_gen.go api/metric/openapi.bundle.yaml 2>&1
-          "{{.OAPI_CODEGEN}}" -generate client -o pkg/openapi/metric/oas_client_gen.go api/metric/openapi.bundle.yaml 2>&1
         fi
 
   deps:update:
