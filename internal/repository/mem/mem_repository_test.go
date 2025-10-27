@@ -89,6 +89,7 @@ func TestMemRepository_Get(t *testing.T) {
 func float64ptr(v float64) *float64 {
 	return &v
 }
+
 func int64ptr(v int64) *int64 {
 	return &v
 }
@@ -184,6 +185,7 @@ func TestMemRepository_GetAll(t *testing.T) {
 		})
 	}
 }
+
 func createRepoWithData() *MemRepository {
 	r := NewMemRepository(storage.NewMemStorage())
 	a, p := &domain.Metrics{

@@ -1,9 +1,9 @@
 type: object
 required:
-  - status
+  - code
   - message
 properties:
-  status:
+  code:
     type: integer
     description: HTTP-код ошибки
     example: 400

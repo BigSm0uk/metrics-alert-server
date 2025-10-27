@@ -42,16 +42,20 @@ func (r *MemRepository) SaveOrUpdateBatch(ctx context.Context, metrics []domain.
 	}
 	return nil
 }
+
 func (r *MemRepository) MetricListByType(ctx context.Context, metricType string) ([]domain.Metrics, error) {
 	metrics := r.storage.GetByType(metricType)
 	return metrics, nil
 }
+
 func (r *MemRepository) Ping(ctx context.Context) error {
 	return nil
 }
+
 func (r *MemRepository) Close() error {
 	return nil
 }
+
 func (r *MemRepository) Bootstrap(ctx context.Context) error {
 	return nil
 }

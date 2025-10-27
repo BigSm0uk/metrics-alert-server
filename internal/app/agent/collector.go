@@ -8,11 +8,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
-	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/mem"
 	"go.uber.org/zap"
+
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
+	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 )
 
 type MetricsCollector struct {
@@ -24,6 +25,7 @@ type MetricsCollector struct {
 func NewMetricsCollector() *MetricsCollector {
 	return &MetricsCollector{metrics: make(map[string]domain.Metrics)}
 }
+
 func (c *MetricsCollector) CollectSystemMetrics() {
 	v, err := mem.VirtualMemory()
 	if err != nil {
@@ -65,6 +67,7 @@ func (c *MetricsCollector) CollectSystemMetrics() {
 	}
 	zl.Log.Debug("collected system metrics")
 }
+
 func (c *MetricsCollector) CollectRuntimeMetrics() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
@@ -132,6 +135,7 @@ func (c *MetricsCollector) GetMetrics() []domain.Metrics {
 	}
 	return result
 }
+
 func (c *MetricsCollector) RunProcess(ctx context.Context, wg *sync.WaitGroup, pollInterval uint) {
 	ticker := time.NewTicker(time.Duration(pollInterval) * time.Second)
 	defer ticker.Stop()

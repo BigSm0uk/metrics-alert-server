@@ -5,9 +5,10 @@ import (
 	"io"
 	"net/http"
 
+	"go.uber.org/zap"
+
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/pkg/util/hasher"
-	"go.uber.org/zap"
 )
 
 func HashHandlerMiddleware(next http.Handler, key string) http.Handler {

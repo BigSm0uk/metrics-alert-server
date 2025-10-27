@@ -13,9 +13,8 @@ import (
 	"net/url"
 	"strings"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/oapi-codegen/runtime"
+	"gopkg.in/yaml.v2"
 )
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
@@ -431,7 +430,7 @@ func NewUpdateOrCreateMetricByBodyRequest(server string, body UpdateOrCreateMetr
 }
 
 // NewUpdateOrCreateMetricByBodyRequestWithBody generates requests for UpdateOrCreateMetricByBody with any type of body
-func NewUpdateOrCreateMetricByBodyRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+func NewUpdateOrCreateMetricByBodyRequestWithBody(server, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -519,7 +518,7 @@ func NewUpdateOrCreateMetricsBatchRequest(server string, body UpdateOrCreateMetr
 }
 
 // NewUpdateOrCreateMetricsBatchRequestWithBody generates requests for UpdateOrCreateMetricsBatch with any type of body
-func NewUpdateOrCreateMetricsBatchRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+func NewUpdateOrCreateMetricsBatchRequestWithBody(server, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -559,7 +558,7 @@ func NewGetValueByBodyRequest(server string, body GetValueByBodyJSONRequestBody)
 }
 
 // NewGetValueByBodyRequestWithBody generates requests for GetValueByBody with any type of body
-func NewGetValueByBodyRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+func NewGetValueByBodyRequestWithBody(server, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -1143,7 +1142,6 @@ func ParseGetOpenAPIResponse(rsp *http.Response) (*GetOpenAPIResponse, error) {
 			return nil, err
 		}
 		response.YAML200 = &dest
-
 	}
 
 	return response, nil

@@ -52,6 +52,7 @@ func LoadServerConfig() (*ServerConfig, error) {
 
 	return cfg, nil
 }
+
 func (s *ServerConfig) isActiveStore() bool {
 	return !s.IsPgStoreStorage() && s.Store.FileStoragePath != ""
 }
@@ -59,6 +60,7 @@ func (s *ServerConfig) isActiveStore() bool {
 func (s *ServerConfig) IsPgStoreStorage() bool {
 	return s.Storage.ConnectionString != ""
 }
+
 func InitDefaultConfig() *ServerConfig {
 	return &ServerConfig{
 		Addr: "localhost:8080",

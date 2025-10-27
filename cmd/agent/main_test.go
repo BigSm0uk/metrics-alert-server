@@ -12,5 +12,4 @@ func TestRun(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.NotNil(t, app)
-
 }

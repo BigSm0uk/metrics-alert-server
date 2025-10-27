@@ -4,12 +4,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/bigsm0uk/metrics-alert-server/internal/handler"
-	lm "github.com/bigsm0uk/metrics-alert-server/internal/handler/middleware"
-	oapiMetric "github.com/bigsm0uk/metrics-alert-server/pkg/openapi/metric"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+
+	"github.com/bigsm0uk/metrics-alert-server/internal/handler"
+	lm "github.com/bigsm0uk/metrics-alert-server/internal/handler/middleware"
+	oapiMetric "github.com/bigsm0uk/metrics-alert-server/pkg/openapi/metric"
 )
 
 func NewRouter(h *handler.MetricHandler, key string) *chi.Mux {
@@ -35,7 +36,6 @@ func NewRouter(h *handler.MetricHandler, key string) *chi.Mux {
 	r.Use(lm.GzipDecompressMiddleware)
 	r.Use(lm.GzipCompressMiddleware)
 
-	// Создаем wrapper для handler с hash middleware для определенных маршрутов
 	wrapper := &MetricHandlerWrapper{
 		handler: h,
 		key:     key,

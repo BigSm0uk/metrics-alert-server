@@ -25,7 +25,6 @@ func NewAgent(cfg *config.AgentConfig) *Agent {
 }
 
 func (a *Agent) Run() error {
-
 	wg := sync.WaitGroup{}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

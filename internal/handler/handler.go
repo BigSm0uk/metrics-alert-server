@@ -58,7 +58,7 @@ func initializeTemplate(path string) *template.Template {
 	return tmpl
 }
 
-// UpdateOrCreateMetricByParam
+// UpdateOrCreateMetricByParam обновляет или создает метрику по query параметрам
 func (h *MetricHandler) UpdateOrCreateMetricByParam(w http.ResponseWriter, r *http.Request, mType oapiMetric.UpdateOrCreateMetricByParamParamsType, id oapiMetric.ID, value oapiMetric.Value) {
 	ctx := r.Context()
 
@@ -71,62 +71,54 @@ func (h *MetricHandler) UpdateOrCreateMetricByParam(w http.ResponseWriter, r *ht
 	m, err := dto.Validate()
 	if err != nil {
 		if err == domain.ErrMetricNotFound {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte(err.Error()))
+			handleNotFound(w, err.Error())
 			return
 		} else {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(err.Error()))
+			handleBadRequest(w, err.Error())
 			return
 		}
 	}
 
 	err = h.service.UpdateMetric(ctx, m)
-
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		handleBadRequest(w, err.Error())
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Metric updated"))
 }
 
-// UpdateOrCreateMetricByBody реализует метод интерфейса ServerInterface
+// UpdateOrCreateMetricByBody обновляет или создает метрику по body запроса
 func (h *MetricHandler) UpdateOrCreateMetricByBody(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var dto BodyMetric
 
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("invalid JSON"))
+		handleBadRequest(w, err.Error())
 		return
 	}
 
 	m, err := dto.Validate()
 	if err != nil {
 		if err == domain.ErrMetricNotFound {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte(err.Error()))
+			handleNotFound(w, err.Error())
 			return
 		}
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		handleBadRequest(w, err.Error())
 		return
 	}
 
 	err = h.service.UpdateMetric(ctx, m)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		handleBadRequest(w, err.Error())
 		return
 	}
 
 	updatedMetric, err := h.service.GetEnrichMetric(ctx, m.ID, m.MType)
 	if err != nil {
 		zl.Log.Error("failed to get enriched metric", zap.Error(err))
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		handleInternal(w)
 		return
 	}
 
@@ -135,14 +127,14 @@ func (h *MetricHandler) UpdateOrCreateMetricByBody(w http.ResponseWriter, r *htt
 	json.NewEncoder(w).Encode(updatedMetric)
 }
 
-// GetAllMetrics реализует метод интерфейса ServerInterface
+// GetAllMetrics отдает html с табличным представлением всех метрик
 func (h *MetricHandler) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	m, err := h.service.GetAllMetrics(ctx)
 	if err != nil {
 		zl.Log.Error("failed to get all metrics", zap.Error(err))
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		handleInternal(w)
 		return
 	}
 
@@ -151,12 +143,12 @@ func (h *MetricHandler) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.tmpl.Execute(w, m); err != nil {
 		zl.Log.Error("failed to execute template", zap.Error(err))
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		handleInternal(w)
 		return
 	}
 }
 
-// GetValueByParam реализует метод интерфейса ServerInterface
+// GetValueByParam возвращает значение метрики по ее типу и id
 func (h *MetricHandler) GetValueByParam(w http.ResponseWriter, r *http.Request, mType oapiMetric.GetValueByParamParamsType, id oapiMetric.ID) {
 	ctx := r.Context()
 
@@ -166,19 +158,16 @@ func (h *MetricHandler) GetValueByParam(w http.ResponseWriter, r *http.Request, 
 	}
 	if err := dto.Validate(); err != nil {
 		if err == domain.ErrMetricNotFound {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte(err.Error()))
+			handleNotFound(w, err.Error())
 			return
 		} else {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(err.Error()))
+			handleBadRequest(w, err.Error())
 			return
 		}
 	}
 	m, err := h.service.GetMetric(ctx, dto.ID, dto.Type)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(err.Error()))
+		handleNotFound(w, err.Error())
 		return
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -192,28 +181,25 @@ func (h *MetricHandler) GetValueByParam(w http.ResponseWriter, r *http.Request, 
 	w.Write([]byte(value))
 }
 
-// GetValueByBody реализует метод интерфейса ServerInterface
+// GetValueByBody возвращает метрику по ее типу и id из body запроса
 func (h *MetricHandler) GetValueByBody(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var dto GetMetricDTO
 
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(err.Error())
+		handleBadRequest(w, err.Error())
 		return
 	}
 
 	if err := dto.Validate(); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(err.Error())
+		handleBadRequest(w, err.Error())
 		return
 	}
 
 	m, err := h.service.GetEnrichMetric(ctx, dto.ID, dto.Type)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(err.Error())
+		handleNotFound(w, err.Error())
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -221,34 +207,31 @@ func (h *MetricHandler) GetValueByBody(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(m)
 }
 
-// UpdateOrCreateMetricsBatch реализует метод интерфейса ServerInterface
+// UpdateOrCreateMetricsBatch Обновляет/сохраняет метрики batch запросов
 func (h *MetricHandler) UpdateOrCreateMetricsBatch(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var metrics []BodyMetric
 
 	if err := json.NewDecoder(r.Body).Decode(&metrics); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("invalid JSON"))
+		handleBadRequest(w, err.Error())
 		return
 	}
 
 	for _, metric := range metrics {
 		m, err := metric.Validate()
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
 			if err == domain.ErrMissingMetricValue {
-				fmt.Fprintf(w, "missing value for metric %s", metric.ID)
+				handleBadRequest(w, fmt.Sprintf("missing value for metric %s", metric.ID))
 			} else {
-				fmt.Fprintf(w, "invalid metric %s: %s", metric.ID, err.Error())
+				handleBadRequest(w, fmt.Sprintf("invalid metric %s: %s", metric.ID, err.Error()))
 			}
 			return
 		}
 
 		err = h.service.UpdateMetric(ctx, m)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "failed to update metric %s: %s", metric.ID, err.Error())
+			handleBadRequest(w, err.Error())
 			return
 		}
 	}
@@ -257,13 +240,13 @@ func (h *MetricHandler) UpdateOrCreateMetricsBatch(w http.ResponseWriter, r *htt
 	fmt.Fprintf(w, "Successfully updated %d metrics", len(metrics))
 }
 
-// Ping реализует метод интерфейса ServerInterface
+// Ping проверяет подключение с БД
 func (h *MetricHandler) Ping(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	err := h.service.Ping(ctx)
 	if err != nil {
 		zl.Log.Error("database connection failed", zap.Error(err))
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		handleInternal(w)
 		return
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -271,20 +254,20 @@ func (h *MetricHandler) Ping(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("pong"))
 }
 
-// HealthCheck реализует метод интерфейса ServerInterface
+// HealthCheck проверяет жив ли сервис
 func (h *MetricHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
 }
 
-// GetDocs реализует метод интерфейса ServerInterface
+// GetDocs возвращает openapi документацию по сервису в формате html
 func (h *MetricHandler) GetDocs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	http.ServeFile(w, r, "docs/redoc.html")
+	http.ServeFile(w, r, "api/docs/redoc.html")
 }
 
-// GetOpenAPI реализует метод интерфейса ServerInterface
+// GetOpenAPI возвращает openapi документацию по сервису в формате yaml
 func (h *MetricHandler) GetOpenAPI(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/yaml; charset=utf-8")
 	http.ServeFile(w, r, "api/metric/openapi.yaml")
@@ -292,4 +275,43 @@ func (h *MetricHandler) GetOpenAPI(w http.ResponseWriter, r *http.Request) {
 
 func (h *MetricHandler) Close() error {
 	return h.service.Close()
+}
+
+func handleInternal(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+
+	w.WriteHeader(http.StatusInternalServerError)
+	json.NewEncoder(w).Encode(oapiMetric.InternalServerError{
+		Code:    http.StatusInternalServerError,
+		Message: http.StatusText(http.StatusInternalServerError),
+	})
+}
+
+func handleBadRequest(w http.ResponseWriter, errText string) {
+	w.Header().Set("Content-Type", "application/json")
+
+	message := http.StatusText(http.StatusBadRequest)
+	if errText != "" {
+		message = errText
+	}
+
+	w.WriteHeader(http.StatusBadRequest)
+	json.NewEncoder(w).Encode(oapiMetric.BadRequestError{
+		Code:    http.StatusBadRequest,
+		Message: message,
+	})
+}
+
+func handleNotFound(w http.ResponseWriter, errText string) {
+	w.Header().Set("Content-Type", "application/json")
+
+	message := http.StatusText(http.StatusBadRequest)
+	if errText != "" {
+		message = errText
+	}
+	w.WriteHeader(http.StatusNotFound)
+	json.NewEncoder(w).Encode(oapiMetric.BadRequestError{
+		Code:    http.StatusNotFound,
+		Message: message,
+	})
 }

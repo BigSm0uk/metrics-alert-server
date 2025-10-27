@@ -34,6 +34,7 @@ func LoadAgentConfig() (*AgentConfig, error) {
 
 	return cfg, err
 }
+
 func isValidURL(addr string) bool {
 	return strings.HasPrefix(addr, "http://") || strings.HasPrefix(addr, "https://")
 }

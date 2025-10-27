@@ -22,8 +22,10 @@ type MetricsSender struct {
 	serverURL string
 }
 
-const maxRetries = 3
-const retryDelay = time.Second
+const (
+	maxRetries = 3
+	retryDelay = time.Second
+)
 
 func NewMetricsSender(serverURL string) *MetricsSender {
 	c := resty.New()
@@ -36,7 +38,6 @@ func NewMetricsSender(serverURL string) *MetricsSender {
 }
 
 func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics, key string) error {
-
 	if len(metrics) == 0 {
 		zl.Log.Debug("no metrics to send, skipping")
 		return nil
@@ -55,7 +56,7 @@ func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics, key string) erro
 
 	url := fmt.Sprintf("%s/updates", s.serverURL)
 
-	req := s.client.R(). //TODO если ключ пустой, то не нужно устанавливать хеш
+	req := s.client.R(). // TODO если ключ пустой, то не нужно устанавливать хеш
 				SetHeader("Content-Type", "application/json").
 				SetHeader("Content-Encoding", "gzip")
 	if key != "" {
@@ -63,7 +64,6 @@ func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics, key string) erro
 	}
 	req.SetBody(compressedData)
 	resp, err := req.Post(url)
-
 	if err != nil {
 		zl.Log.Error("failed to send metrics batch",
 			zap.Int("metrics_count", len(metrics)),
@@ -103,7 +103,6 @@ func (s *MetricsSender) SendMetricV2(metric domain.Metrics, key string) error {
 	}
 	req.SetBody(compressedData)
 	resp, err := req.Post(url)
-
 	if err != nil {
 		zl.Log.Error("failed to send metric",
 			zap.String("metric", metric.ID),

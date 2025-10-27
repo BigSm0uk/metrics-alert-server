@@ -5,9 +5,10 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/cenkalti/backoff/v4"
+
 	pgerrors "github.com/bigsm0uk/metrics-alert-server/internal/app/storage/pgerror"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
-	"github.com/cenkalti/backoff/v4"
 )
 
 func (r *PostgresRepository) SaveOrUpdateBatch(ctx context.Context, metrics []domain.Metrics) error {

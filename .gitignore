@@ -25,3 +25,5 @@ vendor/
 .vscode
 node_modules
 bin
+store.json
+.DS_Store

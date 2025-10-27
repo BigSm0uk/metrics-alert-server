@@ -120,7 +120,6 @@ type MiddlewareFunc func(http.Handler) http.Handler
 
 // GetAllMetrics operation middleware
 func (siw *ServerInterfaceWrapper) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetAllMetrics(w, r)
 	}))
@@ -134,7 +133,6 @@ func (siw *ServerInterfaceWrapper) GetAllMetrics(w http.ResponseWriter, r *http.
 
 // GetDocs operation middleware
 func (siw *ServerInterfaceWrapper) GetDocs(w http.ResponseWriter, r *http.Request) {
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetDocs(w, r)
 	}))
@@ -148,7 +146,6 @@ func (siw *ServerInterfaceWrapper) GetDocs(w http.ResponseWriter, r *http.Reques
 
 // HealthCheck operation middleware
 func (siw *ServerInterfaceWrapper) HealthCheck(w http.ResponseWriter, r *http.Request) {
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.HealthCheck(w, r)
 	}))
@@ -162,7 +159,6 @@ func (siw *ServerInterfaceWrapper) HealthCheck(w http.ResponseWriter, r *http.Re
 
 // GetOpenAPI operation middleware
 func (siw *ServerInterfaceWrapper) GetOpenAPI(w http.ResponseWriter, r *http.Request) {
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetOpenAPI(w, r)
 	}))
@@ -176,7 +172,6 @@ func (siw *ServerInterfaceWrapper) GetOpenAPI(w http.ResponseWriter, r *http.Req
 
 // Ping operation middleware
 func (siw *ServerInterfaceWrapper) Ping(w http.ResponseWriter, r *http.Request) {
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Ping(w, r)
 	}))
@@ -190,7 +185,6 @@ func (siw *ServerInterfaceWrapper) Ping(w http.ResponseWriter, r *http.Request) 
 
 // UpdateOrCreateMetricByBody operation middleware
 func (siw *ServerInterfaceWrapper) UpdateOrCreateMetricByBody(w http.ResponseWriter, r *http.Request) {
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateOrCreateMetricByBody(w, r)
 	}))
@@ -204,7 +198,6 @@ func (siw *ServerInterfaceWrapper) UpdateOrCreateMetricByBody(w http.ResponseWri
 
 // UpdateOrCreateMetricByParam operation middleware
 func (siw *ServerInterfaceWrapper) UpdateOrCreateMetricByParam(w http.ResponseWriter, r *http.Request) {
-
 	var err error
 
 	// ------------- Path parameter "type" -------------
@@ -247,7 +240,6 @@ func (siw *ServerInterfaceWrapper) UpdateOrCreateMetricByParam(w http.ResponseWr
 
 // UpdateOrCreateMetricsBatch operation middleware
 func (siw *ServerInterfaceWrapper) UpdateOrCreateMetricsBatch(w http.ResponseWriter, r *http.Request) {
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateOrCreateMetricsBatch(w, r)
 	}))
@@ -261,7 +253,6 @@ func (siw *ServerInterfaceWrapper) UpdateOrCreateMetricsBatch(w http.ResponseWri
 
 // GetValueByBody operation middleware
 func (siw *ServerInterfaceWrapper) GetValueByBody(w http.ResponseWriter, r *http.Request) {
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetValueByBody(w, r)
 	}))
@@ -275,7 +266,6 @@ func (siw *ServerInterfaceWrapper) GetValueByBody(w http.ResponseWriter, r *http
 
 // GetValueByParam operation middleware
 func (siw *ServerInterfaceWrapper) GetValueByParam(w http.ResponseWriter, r *http.Request) {
-
 	var err error
 
 	// ------------- Path parameter "type" -------------

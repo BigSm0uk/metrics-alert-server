@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"go.uber.org/zap"
+
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/config/storage"
 	pgerrors "github.com/bigsm0uk/metrics-alert-server/internal/app/storage/pgerror"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
-
-	"github.com/cenkalti/backoff/v4"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"go.uber.org/zap"
 )
 
 type PostgresRepository struct {
@@ -49,6 +49,7 @@ func NewPostgresRepository(ctx context.Context, cfg *storage.StorageConfig) (*Po
 
 	return &PostgresRepository{pool: pool}, nil
 }
+
 func (r *PostgresRepository) Bootstrap(ctx context.Context) error {
 	sql := `CREATE TABLE IF NOT EXISTS metrics (
     id VARCHAR(255) NOT NULL,

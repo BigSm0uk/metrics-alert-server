@@ -9,12 +9,12 @@ import (
 	"os"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/config/store"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
-
-	"go.uber.org/zap"
 )
 
 type JSONStore struct {
@@ -48,15 +48,18 @@ func NewJSONStore(r interfaces.MetricsRepository, cfg *store.StoreConfig) (*JSON
 
 	return ms, nil
 }
+
 func (s *JSONStore) StartProcess(ctx context.Context) {
 	if !s.IsActive() || s.syncMode {
 		return
 	}
 	s.startPeriodicSave(ctx)
 }
+
 func (s *JSONStore) IsSyncMode() bool {
 	return s.syncMode
 }
+
 func (s *JSONStore) startPeriodicSave(ctx context.Context) {
 	s.ticker = time.NewTicker(s.storeInterval)
 	go func() {
@@ -72,8 +75,9 @@ func (s *JSONStore) startPeriodicSave(ctx context.Context) {
 		}
 	}()
 }
+
 func (s *JSONStore) WriteMetric(metric domain.Metrics) error {
-	file, err := os.OpenFile(s.cfg.FileStoragePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	file, err := os.OpenFile(s.cfg.FileStoragePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
 	if err != nil {
 		zl.Log.Error("failed to open file for write", zap.Error(err), zap.String("filePath", s.cfg.FileStoragePath))
 		return err
@@ -91,6 +95,7 @@ func (s *JSONStore) WriteMetric(metric domain.Metrics) error {
 
 	return nil
 }
+
 func (s *JSONStore) SaveAllMetrics(ctx context.Context) error {
 	metrics, err := s.r.MetricList(ctx)
 	if err != nil {
@@ -107,7 +112,7 @@ func (s *JSONStore) SaveAllMetrics(ctx context.Context) error {
 		}
 	}
 
-	if err := os.WriteFile(s.cfg.FileStoragePath, buffer.Bytes(), 0644); err != nil {
+	if err := os.WriteFile(s.cfg.FileStoragePath, buffer.Bytes(), 0o644); err != nil {
 		zl.Log.Error("failed to write buffer to file", zap.Error(err), zap.String("filePath", s.cfg.FileStoragePath))
 		return err
 	}
@@ -153,6 +158,7 @@ func (s *JSONStore) Restore(ctx context.Context) error {
 	zl.Log.Info("successfully restored metrics", zap.Int("count", count))
 	return nil
 }
+
 func (s *JSONStore) Close(ctx context.Context) error {
 	if s.ticker != nil {
 		s.ticker.Stop()
@@ -168,6 +174,7 @@ func (s *JSONStore) Close(ctx context.Context) error {
 	zl.Log.Info("store closed successfully")
 	return nil
 }
+
 func (s *JSONStore) IsActive() bool {
 	return s.cfg.UseStore
 }

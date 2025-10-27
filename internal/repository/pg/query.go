@@ -6,12 +6,13 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
-	pgerrors "github.com/bigsm0uk/metrics-alert-server/internal/app/storage/pgerror"
-	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
-	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/cenkalti/backoff/v4"
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
+
+	pgerrors "github.com/bigsm0uk/metrics-alert-server/internal/app/storage/pgerror"
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
+	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 )
 
 func (r *PostgresRepository) Metric(ctx context.Context, id, metricType string) (*domain.Metrics, error) {

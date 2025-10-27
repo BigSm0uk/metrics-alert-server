@@ -5,8 +5,11 @@ vars:
   GOFUMPT_VERSION: 'v0.8.0'
   OAPI_CODEGEN_VERSION: 'v2.4.0'
   REDOCLY_VERSION: 'v2.7.0'
+  GO_VERSION: 'v1.24.7'
 
   BIN_DIR: '{{.ROOT_DIR}}/bin'
+  CMD_DIR: '{{.ROOT_DIR}}/cmd'
+  CONFIG_DIR: '{{.ROOT_DIR}}/config'
   NODE_MODULES_DIR: '{{.ROOT_DIR}}/node_modules/.bin'
   OAPI_CODEGEN: '{{.BIN_DIR}}/oapi-codegen'
   REDOCLY: '{{.NODE_MODULES_DIR}}/redocly'
@@ -50,22 +53,11 @@ tasks:
     cmds:
       - |
         echo "🧼 Форматируем через gofumpt ..."
-        
-        for module in "{{.MODULES}}"; do
-          if [ -d "$module" ]; then
-            echo "🧼 Форматируем $module"
-            find $module -type f -name '*.go' ! -path '*/mocks/*' -exec "{{.GOFUMPT}}" -extra -w {} +
-          fi
-        done
+        find . -type f -name '*.go' ! -path '*/mocks/*' ! -path '*/vendor/*' ! -path '*/node_modules/*' -exec "{{.GOFUMPT}}" -extra -w {} +
       - |
         echo "🎯 Сортируем импорты через gci ..."
-        
-        for module in "{{.MODULES}}"; do
-          if [ -d "$module" ]; then
-            echo "🎯 Сортируем импорты в $module"
-            find $module -type f -name '*.go' ! -path '*/mocks/*' -exec "{{.GCI}}" write -s standard -s default -s "prefix(github.com/bigsm0uk)" {} +
-          fi
-        done
+        find . -type f -name '*.go' ! -path '*/mocks/*' ! -path '*/vendor/*' ! -path '*/node_modules/*' -exec "{{.GCI}}" write -s standard -s default -s "prefix(github.com/bigsm0uk)" {} +
+
   redoc:install:
     desc: "Устанавливает redocly в папку node_modules"
     summary: |
@@ -77,6 +69,7 @@ tasks:
         [ -f "{{.REDOCLY}}" ] || {
           npm ci
         }
+
   redoc:bundle:
     desc: "Генерация bundle OpenAPI через redocly"
     summary: |
@@ -87,6 +80,8 @@ tasks:
     cmds:
       - |
         "{{.REDOCLY}}" bundle -o api/metric/openapi.bundle.yaml api/metric/openapi.yaml 
+        "{{.REDOCLY}}" build-docs -o api/docs/redoc.html api/metric/openapi.yaml
+
   oapi:install:
     desc: "Устанавливает oapi-codegen в папку bin"
     summary: |
@@ -113,9 +108,63 @@ tasks:
           "{{.OAPI_CODEGEN}}" -generate chi -o pkg/openapi/metric/oas_server_gen.go api/metric/openapi.bundle.yaml 2>&1
           "{{.OAPI_CODEGEN}}" -generate client -o pkg/openapi/metric/oas_client_gen.go api/metric/openapi.bundle.yaml 2>&1
         fi
+
   deps:update:
     desc: "Обновление зависимостей в go.mod"
     cmds:
       - |
         echo "🔄 Обновление зависимостей в go.mod"
         go mod tidy
+
+  build:server:
+    desc: "Сборка бинарника серера"
+    summary: |
+      Позволяет собрать server в папку bin
+    cmds:
+      - |
+        echo "🔄 запускаю сборку server"
+        go build -o "{{.BIN_DIR}}"/server "{{.CMD_DIR}}"/server
+
+  build:agent:
+    desc: "Сборка бинарника серера"
+    summary: |
+      Позволяет собрать agent в папку bin
+    cmds:
+      - |
+        echo "🔄 запускаю сборку agent"
+        go build -o "{{.BIN_DIR}}"/agent "{{.CMD_DIR}}"/agent
+  run:server:
+    desc: "Запуск бинарника серера с базой postgres (по умолчанию)"
+    deps: [ build:server]
+    summary: |
+      Позволяет запустить сервис server
+    cmds:
+      - |
+        echo "🚀 запускаю server"
+        "{{.BIN_DIR}}"/server
+
+  run:server:mem:
+    desc: "Запуск бинарника серера с базой в памяти"
+    deps: [ build:server]
+    summary: |
+      Позволяет запустить сервис server
+    cmds:
+      - |
+        echo "🚀 запускаю server"
+        "{{.BIN_DIR}}"/server --config="{{.CONFIG_DIR}}"/config.dev.yaml
+
+  run:agent:
+    desc: "Запуск бинарника агента"
+    deps: [ build:agent]
+    summary: |
+      Позволяет запустить agent
+    cmds:
+      - |
+        echo "🚀 запускаю agent"
+        "{{.BIN_DIR}}"/agent
+
+  test:
+    desc: "Запуск тестов"
+    cmds:
+      - | 
+        go test {{.ROOT_DIR}}/...

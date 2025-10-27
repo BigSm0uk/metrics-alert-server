@@ -33,6 +33,7 @@ func (m *MemStorage) Get(id, t string) (domain.Metrics, bool) {
 	}
 	return metric, ok
 }
+
 func (m *MemStorage) GetByType(metricType string) []domain.Metrics {
 	m.mu.RLock()
 	defer m.mu.RUnlock()

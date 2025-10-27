@@ -15,7 +15,6 @@ func initializeApp() (*app.Server, error) {
 		app.WithHandler(),
 		app.WithRestoreData(),
 		app.WithBootstrap())
-
 	if err != nil {
 		return nil, err
 	}

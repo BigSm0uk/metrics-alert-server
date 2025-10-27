@@ -21,6 +21,7 @@ type MetricService struct {
 func NewService(repository interfaces.MetricsRepository, store interfaces.MetricsStore) *MetricService {
 	return &MetricService{repository: repository, store: store}
 }
+
 func (s *MetricService) UpdateMetric(ctx context.Context, metric *domain.Metrics) error {
 	m, err := s.repository.Metric(ctx, metric.ID, metric.MType)
 	if err != nil {
@@ -69,6 +70,7 @@ func (s *MetricService) UpdateMetric(ctx context.Context, metric *domain.Metrics
 	zl.Log.Debug("updating metric", zap.String("type", metric.MType), zap.String("id", metric.ID), zap.String("value", fmt.Sprintf("%v", util.GetDefault(metric.Value))), zap.String("delta", fmt.Sprintf("%v", util.GetDefault(metric.Delta))))
 	return nil
 }
+
 func (s *MetricService) UpdateMetricsBatch(ctx context.Context, metrics []domain.Metrics) error {
 	err := s.repository.SaveOrUpdateBatch(ctx, metrics)
 	if err != nil {
@@ -89,6 +91,7 @@ func (s *MetricService) GetAllMetrics(ctx context.Context) ([]domain.Metrics, er
 	zl.Log.Debug("Total metrics", zap.Int("len", len(m)))
 	return m, nil
 }
+
 func (s *MetricService) GetMetric(ctx context.Context, id, t string) (*domain.Metrics, error) {
 	m, err := s.repository.Metric(ctx, id, t)
 	if err != nil {
@@ -97,12 +100,15 @@ func (s *MetricService) GetMetric(ctx context.Context, id, t string) (*domain.Me
 	zl.Log.Debug("Get metric", zap.String("id", id))
 	return m, nil
 }
+
 func (s *MetricService) GetEnrichMetric(ctx context.Context, id, mType string) (*domain.Metrics, error) {
 	return s.repository.Metric(ctx, id, mType)
 }
+
 func (s *MetricService) Ping(ctx context.Context) error {
 	return s.repository.Ping(ctx)
 }
+
 func (s *MetricService) Close() error {
 	return s.repository.Close()
 }

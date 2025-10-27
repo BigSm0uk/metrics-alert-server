@@ -23,11 +23,11 @@ const (
 
 // BadRequestError defines model for bad_request_error.
 type BadRequestError struct {
+	// Code HTTP-код ошибки
+	Code int `json:"code"`
+
 	// Message Описание ошибки
 	Message string `json:"message"`
-
-	// Status HTTP-код ошибки
-	Status int `json:"status"`
 }
 
 // GenericError defines model for generic_error.
