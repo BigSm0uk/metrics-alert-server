@@ -13,20 +13,23 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/bigsm0uk/metrics-alert-server/internal/service"
 	oapiMetric "github.com/bigsm0uk/metrics-alert-server/pkg/openapi/metric"
+	"github.com/bigsm0uk/metrics-alert-server/pkg/util/hasher"
 )
 
 type MetricHandler struct {
 	oapiMetric.Unimplemented
 	service *service.MetricService
 	tmpl    *template.Template
+	key     string
 }
 
-func NewMetricHandler(service *service.MetricService, templatePath string) *MetricHandler {
+func NewMetricHandler(service *service.MetricService, templatePath string, key string) *MetricHandler {
 	tmpl := initializeTemplate(templatePath)
 
 	return &MetricHandler{
 		service: service,
 		tmpl:    tmpl,
+		key:     key,
 	}
 }
 
@@ -84,8 +87,7 @@ func (h *MetricHandler) UpdateOrCreateMetricByParam(w http.ResponseWriter, r *ht
 		handleBadRequest(w, err.Error())
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Metric updated"))
+	jsonWithHashValueHandler(w, m, h.key)
 }
 
 // UpdateOrCreateMetricByBody обновляет или создает метрику по body запроса
@@ -122,9 +124,7 @@ func (h *MetricHandler) UpdateOrCreateMetricByBody(w http.ResponseWriter, r *htt
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(updatedMetric)
+	jsonWithHashValueHandler(w, updatedMetric, h.key)
 }
 
 // GetAllMetrics отдает html с табличным представлением всех метрик
@@ -202,9 +202,7 @@ func (h *MetricHandler) GetValueByBody(w http.ResponseWriter, r *http.Request) {
 		handleNotFound(w, err.Error())
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(m)
+	jsonWithHashValueHandler(w, m, h.key)
 }
 
 // UpdateOrCreateMetricsBatch Обновляет/сохраняет метрики batch запросов
@@ -236,8 +234,7 @@ func (h *MetricHandler) UpdateOrCreateMetricsBatch(w http.ResponseWriter, r *htt
 		}
 	}
 
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Successfully updated %d metrics", len(metrics))
+	jsonWithHashValueHandler(w, metrics, h.key)
 }
 
 // Ping проверяет подключение с БД
@@ -314,4 +311,27 @@ func handleNotFound(w http.ResponseWriter, errText string) {
 		Code:    http.StatusNotFound,
 		Message: message,
 	})
+}
+func jsonWithHashValueHandler(w http.ResponseWriter, data any, key string) {
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		zl.Log.Error("failed to marshal response data", zap.Error(err))
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+
+	withHasherValueHandler(w, jsonData, key)
+
+	w.WriteHeader(http.StatusOK)
+
+	if _, err := w.Write(jsonData); err != nil {
+		zl.Log.Error("failed to write response", zap.Error(err))
+	}
+}
+func withHasherValueHandler(w http.ResponseWriter, jsonData []byte, key string) {
+	if key != "" && len(jsonData) > 0 {
+		hash := hasher.Hash(string(jsonData), key)
+		w.Header().Set("HashSHA256", hash)
+	}
 }

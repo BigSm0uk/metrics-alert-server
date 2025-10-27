@@ -29,25 +29,54 @@ type ServerConfig struct {
 }
 
 func LoadServerConfig() (*ServerConfig, error) {
-	cfg := &ServerConfig{}
+	cfg := InitDefaultConfig()
 	path := flag.String("config", "config/config.dev.yaml", "path to config file")
-	flag.StringVar(&cfg.Addr, "a", "localhost:8080", "server address")
 
-	flag.StringVar(&cfg.Store.FileStoragePath, "f", "store.json", "path to store file")
-	flag.BoolVar(&cfg.Store.Restore, "r", true, "restore store from file")
-	flag.StringVar(&cfg.Store.StoreInterval, "i", "300", "store interval")
-
-	flag.StringVar(&cfg.Storage.ConnectionString, "d", "", "database connection string")
-
-	flag.StringVar(&cfg.Key, "k", "", "key")
+	var (
+		flagAddr     = flag.String("a", "", "server address")
+		flagFile     = flag.String("f", "", "path to store file")
+		flagRestore  = flag.Bool("r", true, "restore store from file")
+		flagInterval = flag.String("i", "", "store interval")
+		flagDB       = flag.String("d", "", "database connection string")
+		flagKey      = flag.String("k", "", "key")
+	)
 
 	flag.Parse()
 
+	// Пытаемся прочитать YAML файл (он перезапишет дефолты + применит env переменные)
 	if err := cleanenv.ReadConfig(*path, cfg); err != nil {
 		fmt.Printf("failed to read config: %v. In development mode. Using default config...", err)
-		cfg = InitDefaultConfig()
+		// Если файла нет, применяем env переменные напрямую
+		if err := cleanenv.ReadEnv(cfg); err != nil {
+			// Можно игнорировать, если env переменные не заданы
+		}
 	}
 
+	// Применяем флаги командной строки ТОЛЬКО если они были явно указаны
+	// ENV переменные имеют приоритет над флагами для KEY!
+	if *flagAddr != "" {
+		cfg.Addr = *flagAddr
+	}
+	if *flagFile != "" {
+		cfg.Store.FileStoragePath = *flagFile
+	}
+	// flagRestore всегда имеет значение (bool), проверяем через flag.Visit
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "r" {
+			cfg.Store.Restore = *flagRestore
+		}
+	})
+	if *flagInterval != "" {
+		cfg.Store.StoreInterval = *flagInterval
+	}
+
+	if *flagDB != "" {
+		cfg.Storage.ConnectionString = *flagDB
+	}
+
+	if cfg.Key == "" && *flagKey != "" {
+		cfg.Key = *flagKey
+	}
 	cfg.Store.UseStore = cfg.isActiveStore()
 
 	return cfg, nil
@@ -70,7 +99,7 @@ func InitDefaultConfig() *ServerConfig {
 		TemplatePath: "api/templates/metrics.html",
 		Env:          EnvDevelopment,
 		Store: Store.StoreConfig{
-			UseStore:      false,
+			UseStore:      true,
 			StoreInterval: "300",
 			SFormat:       "json",
 		},

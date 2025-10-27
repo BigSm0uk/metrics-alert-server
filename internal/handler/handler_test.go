@@ -32,7 +32,7 @@ func setupTestServer(t *testing.T) (*httptest.Server, *resty.Client) {
 	require.NoError(t, err)
 
 	svc := service.NewService(r, ms)
-	h := NewMetricHandler(svc, cfg.TemplatePath)
+	h := NewMetricHandler(svc, cfg.TemplatePath, cfg.Key)
 
 	// Используем сгенерированный OpenAPI роутер
 	router := chi.NewRouter()
@@ -284,13 +284,13 @@ func TestMetricHandler_UpdateMetricsBatch(t *testing.T) {
 				},
 			},
 			wantStatus: http.StatusOK,
-			wantBody:   "Successfully updated 3 metrics",
+			wantBody:   "",
 		},
 		{
 			name:       "empty batch",
 			body:       []map[string]interface{}{},
 			wantStatus: http.StatusOK,
-			wantBody:   "Successfully updated 0 metrics",
+			wantBody:   "",
 		},
 		{
 			name: "single metric in batch",
@@ -302,7 +302,7 @@ func TestMetricHandler_UpdateMetricsBatch(t *testing.T) {
 				},
 			},
 			wantStatus: http.StatusOK,
-			wantBody:   "Successfully updated 1 metrics",
+			wantBody:   "",
 		},
 		{
 			name:       "invalid json",

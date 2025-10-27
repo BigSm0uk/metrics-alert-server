@@ -1,0 +1,197 @@
+version: '3'
+
+vars:
+  METRICSTEST: '../bin/metricstest-darwin-arm64'
+  SERVER_BIN: '../bin/server'
+  AGENT_BIN: '../bin/agent'
+  SOURCE_PATH: '..'
+  SERVER_PORT: '8080'
+  TEMP_FILE: '/tmp/metrics.json'
+  KEY_FILE: '/tmp/key.txt'
+  DATABASE_DSN: 'postgres://metrics_user:metrics_password@localhost:5432/metrics_dev?sslmode=disable'
+
+tasks:
+  iter1:
+    desc: "Тест инкремента 1 - Базовый сервер"
+    cmds:
+      - |
+        {{.METRICSTEST}} -test.v -test.run='^TestIteration1$' \
+          -binary-path={{.SERVER_BIN}}
+
+  iter2:
+    desc: "Тест инкремента 2 - Агент отправки метрик"
+    cmds:
+      - |
+        {{.METRICSTEST}} -test.v -test.run='^TestIteration2[AB]*$' \
+          -source-path={{.SOURCE_PATH}} \
+          -agent-binary-path={{.AGENT_BIN}}
+
+  iter3:
+    desc: "Тест инкремента 3 - Агент + сервер"
+    cmds:
+      - |
+        {{.METRICSTEST}} -test.v -test.run='^TestIteration3[AB]*$' \
+          -source-path={{.SOURCE_PATH}} \
+          -agent-binary-path={{.AGENT_BIN}} \
+          -binary-path={{.SERVER_BIN}}
+
+  iter4:
+    desc: "Тест инкремента 4 - Порт сервера"
+    cmds:
+      - |
+        {{.METRICSTEST}} -test.v -test.run='^TestIteration4$' \
+          -agent-binary-path={{.AGENT_BIN}} \
+          -binary-path={{.SERVER_BIN}} \
+          -server-port={{.SERVER_PORT}} \
+          -source-path={{.SOURCE_PATH}}
+
+  iter5:
+    desc: "Тест инкремента 5"
+    cmds:
+      - |
+        {{.METRICSTEST}} -test.v -test.run='^TestIteration5$' \
+          -agent-binary-path={{.AGENT_BIN}} \
+          -binary-path={{.SERVER_BIN}} \
+          -server-port={{.SERVER_PORT}} \
+          -source-path={{.SOURCE_PATH}}
+
+  iter6:
+    desc: "Тест инкремента 6"
+    cmds:
+      - |
+        {{.METRICSTEST}} -test.v -test.run='^TestIteration6$' \
+          -agent-binary-path={{.AGENT_BIN}} \
+          -binary-path={{.SERVER_BIN}} \
+          -server-port={{.SERVER_PORT}} \
+          -source-path={{.SOURCE_PATH}}
+
+  iter7:
+    desc: "Тест инкремента 7"
+    cmds:
+      - |
+        {{.METRICSTEST}} -test.v -test.run='^TestIteration7$' \
+          -agent-binary-path={{.AGENT_BIN}} \
+          -binary-path={{.SERVER_BIN}} \
+          -server-port={{.SERVER_PORT}} \
+          -source-path={{.SOURCE_PATH}}
+
+  iter8:
+    desc: "Тест инкремента 8"
+    cmds:
+      - |
+        {{.METRICSTEST}} -test.v -test.run='^TestIteration8$' \
+          -agent-binary-path={{.AGENT_BIN}} \
+          -binary-path={{.SERVER_BIN}} \
+          -server-port={{.SERVER_PORT}} \
+          -source-path={{.SOURCE_PATH}}
+
+  iter9:
+    desc: "Тест инкремента 9 - Файловое хранилище"
+    cmds:
+      - |
+        {{.METRICSTEST}} -test.v -test.run='^TestIteration9$' \
+          -agent-binary-path={{.AGENT_BIN}} \
+          -binary-path={{.SERVER_BIN}} \
+          -file-storage-path={{.TEMP_FILE}} \
+          -server-port={{.SERVER_PORT}} \
+          -source-path={{.SOURCE_PATH}}
+
+  iter10:
+    desc: "Тест инкремента 10 - PostgreSQL"
+    cmds:
+      - |
+        {{.METRICSTEST}} -test.v -test.run='^TestIteration10[AB]$' \
+          -agent-binary-path={{.AGENT_BIN}} \
+          -binary-path={{.SERVER_BIN}} \
+          -database-dsn='{{.DATABASE_DSN}}' \
+          -server-port={{.SERVER_PORT}} \
+          -source-path={{.SOURCE_PATH}}
+
+  iter11:
+    desc: "Тест инкремента 11 - PostgreSQL продолжение"
+    cmds:
+      - |
+        {{.METRICSTEST}} -test.v -test.run='^TestIteration11$' \
+          -agent-binary-path={{.AGENT_BIN}} \
+          -binary-path={{.SERVER_BIN}} \
+          -database-dsn='{{.DATABASE_DSN}}' \
+          -server-port={{.SERVER_PORT}} \
+          -source-path={{.SOURCE_PATH}}
+
+  iter12:
+    desc: "Тест инкремента 12"
+    cmds:
+      - |
+        {{.METRICSTEST}} -test.v -test.run='^TestIteration12$' \
+          -agent-binary-path={{.AGENT_BIN}} \
+          -binary-path={{.SERVER_BIN}} \
+          -database-dsn='{{.DATABASE_DSN}}' \
+          -server-port={{.SERVER_PORT}} \
+          -source-path={{.SOURCE_PATH}}
+
+  iter13:
+    desc: "Тест инкремента 13"
+    cmds:
+      - |
+        {{.METRICSTEST}} -test.v -test.run='^TestIteration13$' \
+          -agent-binary-path={{.AGENT_BIN}} \
+          -binary-path={{.SERVER_BIN}} \
+          -database-dsn='{{.DATABASE_DSN}}' \
+          -server-port={{.SERVER_PORT}} \
+          -source-path={{.SOURCE_PATH}}
+
+  iter14:
+    desc: "Тест инкремента 14 - Подпись данных"
+    cmds:
+      - |
+        {{.METRICSTEST}} -test.v -test.run='^TestIteration14$' \
+          -agent-binary-path={{.AGENT_BIN}} \
+          -binary-path={{.SERVER_BIN}} \
+          -database-dsn='{{.DATABASE_DSN}}' \
+          -key="{{.KEY_FILE}}" \
+          -server-port={{.SERVER_PORT}} \
+          -source-path={{.SOURCE_PATH}}
+
+  iter14-race:
+    desc: "Тест инкремента 14 - Race detection"
+    dir: ..
+    cmds:
+      - go test -v -race ./...
+
+  all:
+    desc: "Запустить все тесты последовательно"
+    cmds:
+      - task: iter1
+      - task: iter2
+      - task: iter3
+      - task: iter4
+      - task: iter5
+      - task: iter6
+      - task: iter7
+      - task: iter8
+      - task: iter9
+      - task: iter10
+      - task: iter11
+      - task: iter12
+      - task: iter13
+      - task: iter14
+      - task: iter14-race
+
+  from:
+    desc: "Запустить тесты начиная с указанного инкремента (например: task from ITER=5)"
+    vars:
+      ITER: '{{.ITER | default "1"}}'
+      ITERATIONS: "1 2 3 4 5 6 7 8 9 10 11 12 13 14"
+    cmds:
+      - for: {var: ITERATIONS, split: ' '}
+        cmd: |
+          if [ {{.ITEM}} -ge {{.ITER}} ]; then
+            task iter{{.ITEM}}
+          fi
+
+  help:
+    desc: "Показать список всех доступных тестов"
+    cmds:
+      - task --list-all
+    silent: true
+

@@ -108,7 +108,7 @@ func WithService() ContainerOptions {
 // WithHandler инициализирует обработчик
 func WithHandler() ContainerOptions {
 	return func(c *Container) error {
-		c.handler = handler.NewMetricHandler(c.service, c.config.TemplatePath)
+		c.handler = handler.NewMetricHandler(c.service, c.config.TemplatePath, c.config.Key)
 		return nil
 	}
 }
