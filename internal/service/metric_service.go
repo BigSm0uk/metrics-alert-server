@@ -22,7 +22,7 @@ func NewService(repository interfaces.MetricsRepository, store interfaces.Metric
 	return &MetricService{repository: repository, store: store}
 }
 
-func (s *MetricService) UpdateMetric(ctx context.Context, metric *domain.Metrics) error {
+func (s *MetricService) SaveOrUpdateMetric(ctx context.Context, metric *domain.Metrics) error {
 	m, err := s.repository.Metric(ctx, metric.ID, metric.MType)
 	if err != nil {
 		if errors.Is(err, domain.ErrMetricNotFound) {
@@ -71,7 +71,7 @@ func (s *MetricService) UpdateMetric(ctx context.Context, metric *domain.Metrics
 	return nil
 }
 
-func (s *MetricService) UpdateMetricsBatch(ctx context.Context, metrics []domain.Metrics) error {
+func (s *MetricService) SaveOrUpdateMetricsBatch(ctx context.Context, metrics []domain.Metrics) error {
 	err := s.repository.SaveOrUpdateBatch(ctx, metrics)
 	if err != nil {
 		zl.Log.Error("failed to save metrics batch", zap.Error(err))
