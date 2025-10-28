@@ -47,9 +47,8 @@ func LoadServerConfig() (*ServerConfig, error) {
 	if err := cleanenv.ReadConfig(*path, cfg); err != nil {
 		fmt.Printf("failed to read config: %v. In development mode. Using default config...", err)
 		// Если файла нет, применяем env переменные напрямую
-		if err := cleanenv.ReadEnv(cfg); err != nil {
-			// Можно игнорировать, если env переменные не заданы
-		}
+		_ = cleanenv.ReadEnv(cfg)
+
 	}
 
 	// Применяем флаги командной строки ТОЛЬКО если они были явно указаны
