@@ -19,12 +19,3 @@ type MetricsRepository interface {
 
 	Bootstrap(ctx context.Context) error
 }
-type MetricsStore interface {
-	StartProcess(ctx context.Context)
-	IsActive() bool
-	IsSyncMode() bool
-	Close(ctx context.Context) error
-	Restore(ctx context.Context) error
-	SaveAllMetrics(ctx context.Context) error
-	WriteMetric(metric domain.Metrics) error
-}

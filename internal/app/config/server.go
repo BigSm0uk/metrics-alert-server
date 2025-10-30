@@ -6,6 +6,7 @@ import (
 
 	"github.com/ilyakaznacheev/cleanenv"
 
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/config/audit"
 	S "github.com/bigsm0uk/metrics-alert-server/internal/app/config/storage"
 	Store "github.com/bigsm0uk/metrics-alert-server/internal/app/config/store"
 )
@@ -26,6 +27,7 @@ type ServerConfig struct {
 	Addr         string            `env:"ADDRESS"`
 	Store        Store.StoreConfig `required:"true"`
 	Key          string            `env:"KEY"`
+	Audit        audit.AuditConfig `yaml:"audit"`
 }
 
 func LoadServerConfig() (*ServerConfig, error) {
@@ -33,12 +35,14 @@ func LoadServerConfig() (*ServerConfig, error) {
 	path := flag.String("config", "config/config.dev.yaml", "path to config file")
 
 	var (
-		flagAddr     = flag.String("a", "", "server address")
-		flagFile     = flag.String("f", "", "path to store file")
-		flagRestore  = flag.Bool("r", true, "restore store from file")
-		flagInterval = flag.String("i", "", "store interval")
-		flagDB       = flag.String("d", "", "database connection string")
-		flagKey      = flag.String("k", "", "key")
+		flagAddr      = flag.String("a", "", "server address")
+		flagFile      = flag.String("f", "", "path to store file")
+		flagRestore   = flag.Bool("r", true, "restore store from file")
+		flagInterval  = flag.String("i", "", "store interval")
+		flagDB        = flag.String("d", "", "database connection string")
+		flagKey       = flag.String("k", "", "key")
+		flagAuditURL  = flag.String("audit-url", "", "audit URL")
+		flagAuditFile = flag.String("audit-file", "", "audit file")
 	)
 
 	flag.Parse()
@@ -50,7 +54,6 @@ func LoadServerConfig() (*ServerConfig, error) {
 		_ = cleanenv.ReadEnv(cfg)
 
 	}
-
 	// Применяем флаги командной строки ТОЛЬКО если они были явно указаны
 	// ENV переменные имеют приоритет над флагами для KEY!
 	if *flagAddr != "" {
@@ -77,6 +80,13 @@ func LoadServerConfig() (*ServerConfig, error) {
 		cfg.Key = *flagKey
 	}
 	cfg.Store.UseStore = cfg.isActiveStore()
+
+	if *flagAuditURL != "" {
+		cfg.Audit.AuditURL = *flagAuditURL
+	}
+	if *flagAuditFile != "" {
+		cfg.Audit.AuditFile = *flagAuditFile
+	}
 
 	return cfg, nil
 }
