@@ -15,7 +15,7 @@ type FileObserver struct {
 }
 
 func NewFileObserver(path string, log *zap.Logger) *FileObserver {
-	logger := log.With(zap.String("[audit-file]", path))
+	logger := log.With(zap.String("[audit-file]", path)) // хочется попробовать новую практику
 	return &FileObserver{path: path, log: logger}
 }
 
