@@ -2,10 +2,12 @@ package mem
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/storage"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
+	"github.com/bigsm0uk/metrics-alert-server/internal/repository/strategy"
 )
 
 type MemRepository struct {
@@ -36,9 +38,17 @@ func (r *MemRepository) MetricList(ctx context.Context) ([]domain.Metrics, error
 	return metrics, nil
 }
 
-func (r *MemRepository) SaveOrUpdateBatch(ctx context.Context, metrics []domain.Metrics) error {
+func (r *MemRepository) SaveOrUpdateBatch(ctx context.Context, metrics []*domain.Metrics) error {
 	for _, metric := range metrics {
-		r.storage.Set(metric)
+		if m, ok := r.storage.Get(metric.ID, metric.MType); ok {
+			if s := strategy.StrategyFactory(metric.MType); s != nil {
+				r.storage.Set(*s.Update(&m, metric))
+			} else {
+				return fmt.Errorf("unsupported metric type: %s", metric.MType)
+			}
+		} else {
+			r.storage.Set(*metric)
+		}
 	}
 	return nil
 }

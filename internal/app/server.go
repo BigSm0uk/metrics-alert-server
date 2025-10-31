@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,16 +16,18 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
 	"github.com/bigsm0uk/metrics-alert-server/internal/handler"
+	"github.com/bigsm0uk/metrics-alert-server/internal/service"
 )
 
 type Server struct {
 	cfg *config.ServerConfig
 	h   *handler.MetricHandler
 	Ms  interfaces.MetricsStore
+	as  *service.AuditService
 }
 
-func NewServer(cfg *config.ServerConfig, h *handler.MetricHandler, ms interfaces.MetricsStore) *Server {
-	return &Server{cfg: cfg, h: h, Ms: ms}
+func NewServer(cfg *config.ServerConfig, h *handler.MetricHandler, ms interfaces.MetricsStore, as *service.AuditService) *Server {
+	return &Server{cfg: cfg, h: h, Ms: ms, as: as}
 }
 
 func (a *Server) Run() error {
@@ -40,7 +43,7 @@ func (a *Server) Run() error {
 
 		ctx := context.Background()
 		a.Ms.StartProcess(ctx)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			zl.Log.Fatal("failed to start server", zap.Error(err))
 		}
 	}()

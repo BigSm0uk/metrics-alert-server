@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
@@ -38,6 +39,7 @@ func (h *MetricHandler) UpdateOrCreateMetricByParam(w http.ResponseWriter, r *ht
 		return
 	}
 	jsonWithHashValueHandler(w, m, h.key)
+	h.notifyAudit(r.RemoteAddr, m)
 }
 
 // UpdateOrCreateMetricByBody обновляет или создает метрику по body запроса
@@ -75,38 +77,42 @@ func (h *MetricHandler) UpdateOrCreateMetricByBody(w http.ResponseWriter, r *htt
 	}
 
 	jsonWithHashValueHandler(w, updatedMetric, h.key)
+	h.notifyAudit(r.RemoteAddr, updatedMetric)
 }
 
 // UpdateOrCreateMetricsBatch Обновляет/сохраняет метрики batch запросов
 func (h *MetricHandler) UpdateOrCreateMetricsBatch(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	var metrics []BodyMetric
+	var bodyMetrics []BodyMetric
 
-	if err := json.NewDecoder(r.Body).Decode(&metrics); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&bodyMetrics); err != nil {
 		handleBadRequest(w, err.Error())
 		return
 	}
 
-	for _, metric := range metrics {
-		m, err := metric.Validate()
+	metrics := make([]*domain.Metrics, len(bodyMetrics))
+
+	for i, bodyMetric := range bodyMetrics {
+		m, err := bodyMetric.Validate()
 		if err != nil {
 			if err == domain.ErrMissingMetricValue {
-				handleBadRequest(w, fmt.Sprintf("missing value for metric %s", metric.ID))
+				handleBadRequest(w, fmt.Sprintf("missing value for metric %s", bodyMetric.ID))
 			} else {
-				handleBadRequest(w, fmt.Sprintf("invalid metric %s: %s", metric.ID, err.Error()))
+				handleBadRequest(w, fmt.Sprintf("invalid metric %s: %s", bodyMetric.ID, err.Error()))
 			}
 			return
 		}
 
-		err = h.service.SaveOrUpdateMetric(ctx, m)
-		if err != nil {
-			handleBadRequest(w, err.Error())
-			return
-		}
+		metrics[i] = m
 	}
-
+	err := h.service.SaveOrUpdateMetricsBatch(ctx, metrics)
+	if err != nil {
+		handleBadRequest(w, err.Error())
+		return
+	}
 	jsonWithHashValueHandler(w, metrics, h.key)
+	h.notifyAudit(r.RemoteAddr, metrics...)
 }
 
 // GetValueByBody возвращает метрику по ее типу и id из body запроса
@@ -131,4 +137,15 @@ func (h *MetricHandler) GetValueByBody(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	jsonWithHashValueHandler(w, m, h.key)
+}
+func (h *MetricHandler) notifyAudit(ip string, metrics ...*domain.Metrics) {
+	auditMessage := domain.AuditMessage{
+		TS:      time.Now().Unix(),
+		Metrics: make([]string, len(metrics)),
+		IPAddr:  ip,
+	}
+	for i, metric := range metrics {
+		auditMessage.Metrics[i] = metric.ID
+	}
+	h.as.NotifyAll(auditMessage)
 }

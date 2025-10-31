@@ -14,6 +14,7 @@ import (
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/config"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/server/store"
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/bigsm0uk/metrics-alert-server/internal/repository"
 	"github.com/bigsm0uk/metrics-alert-server/internal/service"
@@ -32,7 +33,8 @@ func setupTestServer(t *testing.T) (*httptest.Server, *resty.Client) {
 	require.NoError(t, err)
 
 	svc := service.NewService(r, ms)
-	h := NewMetricHandler(svc, cfg.TemplatePath, cfg.Key)
+	as := service.NewAuditService(&cfg.Audit, zl.Log)
+	h := NewMetricHandler(svc, cfg.TemplatePath, cfg.Key, as)
 
 	// Используем сгенерированный OpenAPI роутер
 	router := chi.NewRouter()

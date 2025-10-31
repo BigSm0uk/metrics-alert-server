@@ -7,7 +7,7 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/config"
 )
 
-// Log будет доступен всему коду как синглтон.
+// Log будет доступен всему коду как синглтон. //TODO Переделать, чтобы log передавался как аргумент
 // Никакой код, кроме функции Initialize, не должен модифицировать эту переменную.
 // По умолчанию установлен no-op-логер, который не выводит никаких сообщений.
 var Log *zap.Logger = zap.NewNop()
@@ -33,8 +33,6 @@ func developmentLogger() *zap.Logger {
 			LevelKey:       "level",
 			TimeKey:        "time",
 			NameKey:        "logger",
-			CallerKey:      "caller",
-			FunctionKey:    "function",
 			StacktraceKey:  "stacktrace",
 			EncodeLevel:    zapcore.CapitalColorLevelEncoder,
 			EncodeTime:     zapcore.ISO8601TimeEncoder,
@@ -61,8 +59,6 @@ func localLogger() *zap.Logger {
 			LevelKey:       "level",
 			TimeKey:        "time",
 			NameKey:        "logger",
-			CallerKey:      "caller",
-			FunctionKey:    "function",
 			StacktraceKey:  "stacktrace",
 			EncodeLevel:    zapcore.CapitalColorLevelEncoder,
 			EncodeTime:     zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05"),
@@ -89,8 +85,6 @@ func productionLogger() *zap.Logger {
 			LevelKey:       "level",
 			TimeKey:        "time",
 			NameKey:        "logger",
-			CallerKey:      "caller",
-			FunctionKey:    "function",
 			StacktraceKey:  "stacktrace",
 			EncodeLevel:    zapcore.LowercaseLevelEncoder,
 			EncodeTime:     zapcore.ISO8601TimeEncoder,

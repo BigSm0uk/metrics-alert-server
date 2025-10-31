@@ -12,6 +12,7 @@ func initializeApp() (*app.Server, error) {
 		app.WithRepository(),
 		app.WithStore(),
 		app.WithService(),
+		app.WithAuditService(),
 		app.WithHandler(),
 		app.WithRestoreData(),
 		app.WithBootstrap())

@@ -12,15 +12,17 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/internal/handler"
 	"github.com/bigsm0uk/metrics-alert-server/internal/repository"
 	"github.com/bigsm0uk/metrics-alert-server/internal/service"
+	"github.com/bigsm0uk/metrics-alert-server/internal/service/audit"
 )
 
 // Container представляет DI контейнер для управления зависимостями
 type Container struct {
-	config     *config.ServerConfig
-	repository interfaces.MetricsRepository
-	store      interfaces.MetricsStore
-	service    *service.MetricService
-	handler    *handler.MetricHandler
+	config       *config.ServerConfig
+	repository   interfaces.MetricsRepository
+	store        interfaces.MetricsStore
+	service      *service.MetricService
+	handler      *handler.MetricHandler
+	auditService *service.AuditService
 }
 
 // GetRepository возвращает репозиторий (для тестирования)
@@ -108,7 +110,7 @@ func WithService() ContainerOptions {
 // WithHandler инициализирует обработчик
 func WithHandler() ContainerOptions {
 	return func(c *Container) error {
-		c.handler = handler.NewMetricHandler(c.service, c.config.TemplatePath, c.config.Key)
+		c.handler = handler.NewMetricHandler(c.service, c.config.TemplatePath, c.config.Key, c.auditService)
 		return nil
 	}
 }
@@ -137,7 +139,17 @@ func WithBootstrap() ContainerOptions {
 	}
 }
 
+// WithAuditService инициализирует сервис аудита
+func WithAuditService() ContainerOptions {
+	return func(c *Container) error {
+		c.auditService = service.NewAuditService(&c.config.Audit, zl.Log)
+		c.auditService.Attach(audit.NewFileObserver(c.config.Audit.AuditFile, zl.Log))
+		c.auditService.Attach(audit.NewURLObserver(c.config.Audit.AuditURL, zl.Log))
+		return nil
+	}
+}
+
 // Build создает новый сервер
 func Build(c *Container) *Server {
-	return NewServer(c.config, c.handler, c.store)
+	return NewServer(c.config, c.handler, c.store, c.auditService)
 }

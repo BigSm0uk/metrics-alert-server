@@ -46,6 +46,7 @@ require (
 	github.com/go-chi/cors v1.2.2
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/joho/godotenv v1.5.1 // indirect
+	github.com/samber/lo v1.52.0
 	github.com/shirou/gopsutil/v4 v4.25.8
 	go.uber.org/zap v1.27.0
 	gopkg.in/yaml.v3 v3.0.1 // indirect

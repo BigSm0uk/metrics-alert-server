@@ -3,9 +3,11 @@ package audit
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
+	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
 	"go.uber.org/zap"
 )
 
@@ -14,14 +16,21 @@ type FileObserver struct {
 	log  *zap.Logger
 }
 
+var _ interfaces.AuditObserver = &FileObserver{}
+
+func (o *FileObserver) GetID() string {
+	return fmt.Sprintf("file-observer-%s", o.path)
+}
+
 func NewFileObserver(path string, log *zap.Logger) *FileObserver {
-	logger := log.With(zap.String("[audit-file]", path)) // хочется попробовать новую практику
+	logger := log.Named("audit-file-observer")
 	return &FileObserver{path: path, log: logger}
 }
 
 func (o *FileObserver) Notify(message domain.AuditMessage) {
 	if err := o.writeToFile(message); err != nil {
 		o.log.Error("failed to write audit message to file", zap.Error(err))
+		return
 	}
 	o.log.Info("audit message written to file", zap.String("path", o.path))
 }

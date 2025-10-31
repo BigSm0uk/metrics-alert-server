@@ -11,7 +11,7 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 )
 
-func (r *PostgresRepository) SaveOrUpdateBatch(ctx context.Context, metrics []domain.Metrics) error {
+func (r *PostgresRepository) SaveOrUpdateBatch(ctx context.Context, metrics []*domain.Metrics) error {
 	if len(metrics) == 0 {
 		return nil
 	}

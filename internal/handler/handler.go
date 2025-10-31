@@ -19,15 +19,17 @@ type MetricHandler struct {
 	service *service.MetricService
 	tmpl    *template.Template
 	key     string
+	as      *service.AuditService
 }
 
-func NewMetricHandler(service *service.MetricService, templatePath string, key string) *MetricHandler {
+func NewMetricHandler(service *service.MetricService, templatePath string, key string, as *service.AuditService) *MetricHandler {
 	tmpl := initializeTemplate(templatePath)
 
 	return &MetricHandler{
 		service: service,
 		tmpl:    tmpl,
 		key:     key,
+		as:      as,
 	}
 }
 
