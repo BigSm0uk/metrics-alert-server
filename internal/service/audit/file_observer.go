@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"os"
 
+	"go.uber.org/zap"
+
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
-	"go.uber.org/zap"
 )
 
 type FileObserver struct {

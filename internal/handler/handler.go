@@ -22,7 +22,7 @@ type MetricHandler struct {
 	as      *service.AuditService
 }
 
-func NewMetricHandler(service *service.MetricService, templatePath string, key string, as *service.AuditService) *MetricHandler {
+func NewMetricHandler(service *service.MetricService, templatePath, key string, as *service.AuditService) *MetricHandler {
 	tmpl := initializeTemplate(templatePath)
 
 	return &MetricHandler{
@@ -60,9 +60,11 @@ func initializeTemplate(path string) *template.Template {
 
 	return tmpl
 }
+
 func (h *MetricHandler) Close() error {
 	return h.service.Close()
 }
+
 func handleInternal(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -72,6 +74,7 @@ func handleInternal(w http.ResponseWriter) {
 		Message: http.StatusText(http.StatusInternalServerError),
 	})
 }
+
 func handleBadRequest(w http.ResponseWriter, errText string) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -86,6 +89,7 @@ func handleBadRequest(w http.ResponseWriter, errText string) {
 		Message: message,
 	})
 }
+
 func handleNotFound(w http.ResponseWriter, errText string) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -99,6 +103,7 @@ func handleNotFound(w http.ResponseWriter, errText string) {
 		Message: message,
 	})
 }
+
 func jsonWithHashValueHandler(w http.ResponseWriter, data any, key string) {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
@@ -116,6 +121,7 @@ func jsonWithHashValueHandler(w http.ResponseWriter, data any, key string) {
 		zl.Log.Error("failed to write response", zap.Error(err))
 	}
 }
+
 func withHasherValueHandler(w http.ResponseWriter, jsonData []byte, key string) {
 	if key != "" && len(jsonData) > 0 {
 		hash := hasher.Hash(string(jsonData), key)

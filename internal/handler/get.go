@@ -1,13 +1,17 @@
 package handler
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
+	"sync"
+	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	oapiMetric "github.com/bigsm0uk/metrics-alert-server/pkg/openapi/metric"
-	"go.uber.org/zap"
 )
 
 // Ping проверяет подключение с БД
@@ -43,9 +47,24 @@ func (h *MetricHandler) GetOpenAPI(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "api/metric/openapi.yaml")
 }
 
+var (
+	cachedHTML    []byte
+	cachedTime    time.Time
+	cacheDuration = 5 * time.Second
+	cacheMu       sync.RWMutex
+)
+
 // GetAllMetrics отдает html с табличным представлением всех метрик
 func (h *MetricHandler) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	cacheMu.RLock()
+	if time.Since(cachedTime) < cacheDuration && cachedHTML != nil {
+		w.Write(cachedHTML)
+		cacheMu.RUnlock()
+		return
+	}
+	cacheMu.RUnlock()
 
 	m, err := h.service.GetAllMetrics(ctx)
 	if err != nil {
@@ -57,11 +76,19 @@ func (h *MetricHandler) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 
-	if err := h.tmpl.Execute(w, m); err != nil {
+	var buf bytes.Buffer
+	if err := h.tmpl.Execute(&buf, m); err != nil {
 		zl.Log.Error("failed to execute template", zap.Error(err))
 		handleInternal(w)
 		return
 	}
+
+	cacheMu.Lock()
+	cachedHTML = buf.Bytes()
+	cachedTime = time.Now()
+	cacheMu.Unlock()
+
+	w.Write(cachedHTML)
 }
 
 // GetValueByParam возвращает значение метрики по ее типу и id

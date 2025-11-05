@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
@@ -37,7 +38,10 @@ func (a *Server) Run() error {
 		Addr:    a.cfg.Addr,
 		Handler: r,
 	}
-
+	go func() {
+		zl.Log.Info("pprof server listening on :6060")
+		zl.Log.Info("error starting pprof server", zap.Error(http.ListenAndServe("localhost:6060", nil)))
+	}()
 	go func() {
 		zl.Log.Info("starting server", zap.String("Addr", "http://"+a.cfg.Addr))
 

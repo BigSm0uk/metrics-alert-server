@@ -1,0 +1,218 @@
+version: '3'
+
+# Задачи для профилирования с помощью pprof
+
+vars:
+  BIN_DIR: '{{.ROOT_DIR}}/bin'
+  PROFILES_DIR: '{{.ROOT_DIR}}/profiles'
+  PPROF_DIR: '{{.BIN_DIR}}/pprof'
+  PPROF_URL: 'http://localhost:6060'
+
+tasks:
+  pprof:install:
+    desc: "Устанавливает pprof в папку bin"
+    summary: |
+      Устанавливает Google pprof для анализа профилей
+    cmds:
+      - |
+        [ -f "{{.PPROF_DIR}}" ] || {
+          mkdir -p "{{.BIN_DIR}}"
+          GOBIN="{{.BIN_DIR}}" go install github.com/google/pprof@latest
+        }
+
+  pprof:save:base:
+    desc: "Сохранить базовый профиль памяти"
+    summary: |
+      Сохраняет heap профиль в profiles/base.pprof
+      Используется ПЕРЕД оптимизацией для последующего сравнения
+    cmds:
+      - |
+        mkdir -p "{{.PROFILES_DIR}}"
+        echo "📊 Сохранение базового heap профиля..."
+        curl -s "{{.PPROF_URL}}/debug/pprof/heap" > "{{.PROFILES_DIR}}/base.pprof"
+        echo "✅ Профиль сохранен: {{.PROFILES_DIR}}/base.pprof"
+        ls -lh "{{.PROFILES_DIR}}/base.pprof"
+  
+  pprof:save:result:
+    desc: "Сохранить результирующий профиль памяти"
+    summary: |
+      Сохраняет heap профиль в profiles/result.pprof
+      Используется ПОСЛЕ оптимизации для сравнения
+    cmds:
+      - |
+        mkdir -p "{{.PROFILES_DIR}}"
+        echo "📊 Сохранение результирующего heap профиля..."
+        curl -s "{{.PPROF_URL}}/debug/pprof/heap" > "{{.PROFILES_DIR}}/result.pprof"
+        echo "✅ Профиль сохранен: {{.PROFILES_DIR}}/result.pprof"
+        ls -lh "{{.PROFILES_DIR}}/result.pprof"
+  
+  pprof:save:cpu:
+    desc: "Сохранить CPU профиль (30 секунд)"
+    summary: |
+      Сохраняет CPU профиль в profiles/cpu.pprof
+      Требует 30 секунд для сбора данных
+    cmds:
+      - |
+        mkdir -p "{{.PROFILES_DIR}}"
+        echo "📊 Запись CPU профиля (30 секунд, ожидайте)..."
+        curl -s "{{.PPROF_URL}}/debug/pprof/profile?seconds=30" > "{{.PROFILES_DIR}}/cpu.pprof"
+        echo "✅ CPU профиль сохранен: {{.PROFILES_DIR}}/cpu.pprof"
+        ls -lh "{{.PROFILES_DIR}}/cpu.pprof"
+  
+  pprof:save:allocs:
+    desc: "Сохранить профиль аллокаций"
+    summary: |
+      Сохраняет allocations профиль в profiles/allocs.pprof
+      Показывает все аллокации памяти
+    cmds:
+      - |
+        mkdir -p "{{.PROFILES_DIR}}"
+        echo "📊 Сохранение профиля аллокаций..."
+        curl -s "{{.PPROF_URL}}/debug/pprof/allocs" > "{{.PROFILES_DIR}}/allocs.pprof"
+        echo "✅ Профиль аллокаций сохранен: {{.PROFILES_DIR}}/allocs.pprof"
+        ls -lh "{{.PROFILES_DIR}}/allocs.pprof"
+  
+  pprof:save:goroutine:
+    desc: "Сохранить профиль goroutine"
+    summary: |
+      Сохраняет goroutine профиль в profiles/goroutine.pprof
+      Показывает все активные горутины
+    cmds:
+      - |
+        mkdir -p "{{.PROFILES_DIR}}"
+        echo "📊 Сохранение goroutine профиля..."
+        curl -s "{{.PPROF_URL}}/debug/pprof/goroutine" > "{{.PROFILES_DIR}}/goroutine.pprof"
+        echo "✅ Goroutine профиль сохранен: {{.PROFILES_DIR}}/goroutine.pprof"
+        ls -lh "{{.PROFILES_DIR}}/goroutine.pprof"
+  
+  pprof:save:mutex:
+    desc: "Сохранить профиль блокировок"
+    summary: |
+      Сохраняет mutex профиль в profiles/mutex.pprof
+      Показывает конкуренцию за мутексы
+    cmds:
+      - |
+        mkdir -p "{{.PROFILES_DIR}}"
+        echo "📊 Сохранение mutex профиля..."
+        curl -s "{{.PPROF_URL}}/debug/pprof/mutex" > "{{.PROFILES_DIR}}/mutex.pprof"
+        echo "✅ Mutex профиль сохранен: {{.PROFILES_DIR}}/mutex.pprof"
+        ls -lh "{{.PROFILES_DIR}}/mutex.pprof"
+  
+  pprof:save:all:
+    desc: "Сохранить все типы профилей"
+    summary: |
+      Сохраняет heap, cpu, allocs, goroutine и mutex профили
+    deps:
+      - pprof:save:base
+      - pprof:save:cpu
+      - pprof:save:allocs
+      - pprof:save:goroutine
+      - pprof:save:mutex
+  
+  pprof:compare:
+    desc: "Сравнить базовый и результирующий профили"
+    summary: |
+      Сравнивает profiles/base.pprof и profiles/result.pprof
+      Показывает разницу в потреблении памяти (отрицательные значения = улучшение)
+    cmds:
+      - |
+        if [ ! -f "{{.PROFILES_DIR}}/base.pprof" ]; then
+          echo "❌ Не найден {{.PROFILES_DIR}}/base.pprof"
+          echo "Запустите: task pprof:save:base"
+          exit 1
+        fi
+        if [ ! -f "{{.PROFILES_DIR}}/result.pprof" ]; then
+          echo "❌ Не найден {{.PROFILES_DIR}}/result.pprof"
+          echo "Запустите: task pprof:save:result"
+          exit 1
+        fi
+        echo "📊 Сравнение профилей памяти..."
+        echo ""
+        go tool pprof -top -diff_base="{{.PROFILES_DIR}}/base.pprof" "{{.PROFILES_DIR}}/result.pprof"
+  
+  pprof:analyze:heap:
+    desc: "Анализ heap профиля в консоли"
+    summary: |
+      Открывает интерактивный pprof для анализа base.pprof
+    cmds:
+      - |
+        if [ ! -f "{{.PROFILES_DIR}}/base.pprof" ]; then
+          echo "❌ Не найден {{.PROFILES_DIR}}/base.pprof"
+          exit 1
+        fi
+        echo "🔍 Открытие интерактивного pprof..."
+        echo "Команды: top, list, web, peek, quit"
+        go tool pprof "{{.PROFILES_DIR}}/base.pprof"
+
+  pprof:web:
+    desc: "Открыть веб-интерфейс pprof"
+    deps: [ pprof:install ]
+    summary: |
+      Открывает веб-интерфейс pprof на http://localhost:9090
+      Анализирует heap профиль с работающего сервера в реальном времени
+    cmds:
+      - |
+        echo "🌐 Открытие веб-интерфейса на http://localhost:9090"
+        echo "Подключение к {{.PPROF_URL}}/debug/pprof/heap"
+        "{{.PPROF_DIR}}" -http=:9090 "{{.PPROF_URL}}/debug/pprof/heap"
+  
+  pprof:web:compare:
+    desc: "Сравнить профили через веб-интерфейс"
+    deps: [ pprof:install ]
+    summary: |
+      Открывает веб-интерфейс для визуального сравнения base и result профилей
+      Показывает flame graph и другие визуализации
+    cmds:
+      - |
+        if [ ! -f "{{.PROFILES_DIR}}/base.pprof" ] || [ ! -f "{{.PROFILES_DIR}}/result.pprof" ]; then
+          echo "❌ Не найдены {{.PROFILES_DIR}}/base.pprof или {{.PROFILES_DIR}}/result.pprof"
+          echo "Запустите: task pprof:save:base и task pprof:save:result"
+          exit 1
+        fi
+        echo "🌐 Открытие веб-интерфейса на http://localhost:9090"
+        echo "Сравнение base.pprof vs result.pprof"
+        go tool pprof -base="{{.PROFILES_DIR}}/base.pprof" -http=:9090 "{{.PROFILES_DIR}}/result.pprof"
+  
+  pprof:web:cpu:
+    desc: "Анализ CPU профиля через веб-интерфейс"
+    deps: [ pprof:install ]
+    summary: |
+      Открывает веб-интерфейс для анализа CPU профиля
+    cmds:
+      - |
+        if [ ! -f "{{.PROFILES_DIR}}/cpu.pprof" ]; then
+          echo "❌ Не найден {{.PROFILES_DIR}}/cpu.pprof"
+          echo "Запустите: task pprof:save:cpu"
+          exit 1
+        fi
+        echo "🌐 Открытие веб-интерфейса на http://localhost:9090"
+        go tool pprof -http=:9090 "{{.PROFILES_DIR}}/cpu.pprof"
+  
+  
+  pprof:clean:
+    desc: "Очистить все сохраненные профили"
+    summary: |
+      Удаляет все файлы из директории profiles/
+    cmds:
+      - |
+        if [ -d "{{.PROFILES_DIR}}" ]; then
+          echo "🗑️  Удаление профилей..."
+          rm -rf "{{.PROFILES_DIR}}"/*
+          echo "✅ Профили удалены"
+        else
+          echo "✅ Директория profiles/ пуста"
+        fi
+  
+  pprof:list:
+    desc: "Показать все сохраненные профили"
+    summary: |
+      Показывает список всех профилей в директории profiles/
+    cmds:
+      - |
+        if [ -d "{{.PROFILES_DIR}}" ]; then
+          echo "📂 Сохраненные профили:"
+          ls -lh "{{.PROFILES_DIR}}"/*.pprof 2>/dev/null || echo "Нет сохраненных профилей"
+        else
+          echo "Директория profiles/ не существует"
+        fi
+

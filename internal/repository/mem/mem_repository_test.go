@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/storage"
@@ -19,12 +20,12 @@ func TestMemRepository_Get(t *testing.T) {
 	r.SaveOrUpdate(context.Background(), &domain.Metrics{
 		ID:    "Alloc",
 		MType: domain.Gauge,
-		Value: float64ptr(1024),
+		Value: lo.ToPtr(float64(1024)),
 	})
 	r.SaveOrUpdate(context.Background(), &domain.Metrics{
 		ID:    "PollCount",
 		MType: domain.Counter,
-		Delta: int64ptr(5),
+		Delta: lo.ToPtr(int64(5)),
 	})
 
 	tests := []struct {
@@ -44,7 +45,7 @@ func TestMemRepository_Get(t *testing.T) {
 			want: &domain.Metrics{
 				ID:    "Alloc",
 				MType: domain.Gauge,
-				Value: float64ptr(1024),
+				Value: lo.ToPtr(float64(1024)),
 			},
 			wantErr: false,
 		},
@@ -58,7 +59,7 @@ func TestMemRepository_Get(t *testing.T) {
 			want: &domain.Metrics{
 				ID:    "PollCount",
 				MType: domain.Counter,
-				Delta: int64ptr(5),
+				Delta: lo.ToPtr(int64(5)),
 			},
 			wantErr: false,
 		},
@@ -86,14 +87,6 @@ func TestMemRepository_Get(t *testing.T) {
 	}
 }
 
-func float64ptr(v float64) *float64 {
-	return &v
-}
-
-func int64ptr(v int64) *int64 {
-	return &v
-}
-
 func TestMemRepository_Save(t *testing.T) {
 	type args struct {
 		metric *domain.Metrics
@@ -112,7 +105,7 @@ func TestMemRepository_Save(t *testing.T) {
 				metric: &domain.Metrics{
 					ID:    "Alloc",
 					MType: domain.Gauge,
-					Value: float64ptr(1024),
+					Value: lo.ToPtr(float64(1024)),
 				},
 			},
 			wantErr: false,
@@ -124,7 +117,7 @@ func TestMemRepository_Save(t *testing.T) {
 				metric: &domain.Metrics{
 					ID:    "PollCount",
 					MType: domain.Counter,
-					Delta: int64ptr(5),
+					Delta: lo.ToPtr(int64(5)),
 				},
 			},
 			wantErr: false,
@@ -156,12 +149,12 @@ func TestMemRepository_GetAll(t *testing.T) {
 				{
 					ID:    "Alloc",
 					MType: domain.Gauge,
-					Value: float64ptr(1024),
+					Value: lo.ToPtr(float64(1024)),
 				},
 				{
 					ID:    "PollCount",
 					MType: domain.Counter,
-					Delta: int64ptr(5),
+					Delta: lo.ToPtr(int64(5)),
 				},
 			},
 			wantErr: false,
@@ -191,11 +184,11 @@ func createRepoWithData() *MemRepository {
 	a, p := &domain.Metrics{
 		ID:    "Alloc",
 		MType: domain.Gauge,
-		Value: float64ptr(1024),
+		Value: lo.ToPtr(float64(1024)),
 	}, &domain.Metrics{
 		ID:    "PollCount",
 		MType: domain.Counter,
-		Delta: int64ptr(5),
+		Delta: lo.ToPtr(int64(5)),
 	}
 	r.SaveOrUpdate(context.Background(), a)
 	r.SaveOrUpdate(context.Background(), p)

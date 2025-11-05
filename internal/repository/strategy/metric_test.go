@@ -3,9 +3,10 @@ package strategy
 import (
 	"testing"
 
-	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 )
 
 func TestCounterStrategy_Update(t *testing.T) {

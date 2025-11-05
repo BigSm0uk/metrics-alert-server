@@ -1,0 +1,24 @@
+version: '3'
+
+tasks:
+  test:
+    desc: "Запуск всех тестов"
+    cmds:
+      - |
+        echo "🧪 Запуск тестов..."
+        go test {{.ROOT_DIR}}/...
+
+  test:verbose:
+    desc: "Запуск тестов с подробным выводом"
+    cmds:
+      - |
+        go test -v {{.ROOT_DIR}}/...
+
+  test:coverage:
+    desc: "Запуск тестов с покрытием"
+    cmds:
+      - |
+        echo "📊 Запуск тестов с покрытием..."
+        go test -cover -coverprofile=coverage.out {{.ROOT_DIR}}/...
+        go tool cover -html=coverage.out -o coverage.html
+        echo "✅ Отчет сохранен: coverage.html"

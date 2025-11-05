@@ -3,10 +3,11 @@ package service
 import (
 	"strings"
 
+	"go.uber.org/zap"
+
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/config/audit"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
-	"go.uber.org/zap"
 )
 
 type AuditService struct {

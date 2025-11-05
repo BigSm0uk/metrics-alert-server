@@ -99,7 +99,14 @@ func (r *PostgresRepository) MetricList(ctx context.Context) ([]domain.Metrics, 
 	}
 	defer rows.Close()
 
+	var count int
+	err = r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM metrics").Scan(&count)
+	if err != nil {
+		return nil, fmt.Errorf("scan count: %w", err)
+	}
+
 	var metrics []domain.Metrics
+	metrics = make([]domain.Metrics, 0, count)
 	for rows.Next() {
 		var m domain.Metrics
 		err = rows.Scan(&m.ID, &m.MType, &m.Value, &m.Delta, &m.Hash)

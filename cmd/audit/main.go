@@ -10,10 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/go-chi/chi/v5"
 	"github.com/goccy/go-json"
 	"go.uber.org/zap"
+
+	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 )
 
 const (

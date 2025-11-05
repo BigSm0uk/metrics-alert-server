@@ -1,8 +1,9 @@
 package strategy
 
 import (
-	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/samber/lo"
+
+	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 )
 
 // MetricUpdateStrategy определяет интерфейс для обновления метрик.

@@ -5,11 +5,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/goccy/go-json"
+	"go.uber.org/zap"
+
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	oapiMetric "github.com/bigsm0uk/metrics-alert-server/pkg/openapi/metric"
-	"github.com/goccy/go-json"
-	"go.uber.org/zap"
 )
 
 // UpdateOrCreateMetricByParam обновляет или создает метрику по query параметрам
@@ -138,6 +139,7 @@ func (h *MetricHandler) GetValueByBody(w http.ResponseWriter, r *http.Request) {
 	}
 	jsonWithHashValueHandler(w, m, h.key)
 }
+
 func (h *MetricHandler) notifyAudit(ip string, metrics ...*domain.Metrics) {
 	auditMessage := domain.AuditMessage{
 		TS:      time.Now().Unix(),

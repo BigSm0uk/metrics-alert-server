@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
-	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
 	"go.uber.org/zap"
+
+	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
+	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
 )
 
 type URLObserver struct {
@@ -22,6 +23,7 @@ var _ interfaces.AuditObserver = &URLObserver{}
 func (o *URLObserver) GetID() string {
 	return fmt.Sprintf("url-observer-%s", o.url)
 }
+
 func NewURLObserver(url string, log *zap.Logger) *URLObserver {
 	logger := log.Named("audit-url-observer")
 	restyClient := resty.New().SetBaseURL(url).

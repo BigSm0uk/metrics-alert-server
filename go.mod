@@ -12,7 +12,6 @@ require (
 	github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/stretchr/testify v1.11.1
-	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (

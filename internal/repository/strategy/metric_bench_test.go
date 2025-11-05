@@ -3,8 +3,9 @@ package strategy
 import (
 	"testing"
 
-	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/samber/lo"
+
+	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 )
 
 // BenchmarkStrategyFactory_Singleton тестирует производительность с
@@ -67,7 +68,7 @@ func BenchmarkCounterStrategy_Update(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = strategy.Update(oldMetric, newMetric)
 	}
 }
@@ -91,7 +92,7 @@ func BenchmarkGaugeStrategy_Update(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = strategy.Update(oldMetric, newMetric)
 	}
 }

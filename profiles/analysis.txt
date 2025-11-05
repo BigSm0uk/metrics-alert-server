@@ -1,0 +1,55 @@
+
+File: server
+Type: alloc_objects
+Time: 2025-11-05 10:07:56 MSK
+Showing nodes accounting for 409114516, 97.78% of 418405129 total
+Dropped 377 nodes (cum <= 2092025)
+Showing top 20 nodes out of 66
+      flat  flat%   sum%        cum   cum%
+ 144969193 34.65% 34.65%  309610040 74.00%  reflect.Value.call
+  53150910 12.70% 47.35%  104276775 24.92%  reflect.MakeSlice
+  51129166 12.22% 59.57%   51129166 12.22%  reflect.unsafe_NewArray
+  31982543  7.64% 67.22%   32637913  7.80%  html/template.htmlReplacer
+  25622799  6.12% 73.34%   25622799  6.12%  reflect.packEface
+  19672622  4.70% 78.04%  371499586 88.79%  text/template.(*state).evalCall
+  17177215  4.11% 82.15%   36030799  8.61%  github.com/bigsm0uk/metrics-alert-server/internal/repository/pg.(*PostgresRepository).MetricList
+  13575454  3.24% 85.39%   13575454  3.24%  reflect.New
+  11927733  2.85% 88.24%   11927733  2.85%  text/template.(*state).evalEmptyInterface
+  11774902  2.81% 91.06%   11774902  2.81%  text/template.(*state).validateType
+  11403525  2.73% 93.78%   58218940 13.91%  text/template.(*state).evalArg
+   9885182  2.36% 96.14%    9885182  2.36%  github.com/jackc/pgx/v5/pgtype.scanPlanString.Scan
+   2490406   0.6% 96.74%    2490406   0.6%  fmt.Sprintf
+   2086262   0.5% 97.24%    2153500  0.51%  github.com/Masterminds/squirrel.replacePositionalPlaceholders
+    865102  0.21% 97.44%    6660024  1.59%  github.com/bigsm0uk/metrics-alert-server/internal/repository/pg.(*PostgresRepository).SaveOrUpdateBatch
+    862905  0.21% 97.65%    2630148  0.63%  github.com/Masterminds/squirrel.InsertBuilder.Values (inline)
+    294915  0.07% 97.72%  416821784 99.62%  github.com/go-chi/chi/v5/middleware.RequestID.func1
+    111418 0.027% 97.75%   16583071  3.96%  github.com/jackc/pgx/v5.(*baseRows).Scan
+     66727 0.016% 97.76%  416409437 99.52%  github.com/bigsm0uk/metrics-alert-server/internal/handler/middleware.LoggerMiddleware.func1
+     65537 0.016% 97.78%  408238854 97.57%  github.com/bigsm0uk/metrics-alert-server/pkg/openapi/metric.(*ServerInterfaceWrapper).GetAllMetrics
+File: server
+Type: alloc_objects
+Time: 2025-11-05 10:07:56 MSK
+Showing nodes accounting for 409114516, 97.78% of 418405129 total
+Dropped 377 nodes (cum <= 2092025)
+Showing top 20 nodes out of 66
+      flat  flat%   sum%        cum   cum%
+ 144969193 34.65% 34.65%  309610040 74.00%  reflect.Value.call
+  53150910 12.70% 47.35%  104276775 24.92%  reflect.MakeSlice
+  51129166 12.22% 59.57%   51129166 12.22%  reflect.unsafe_NewArray
+  31982543  7.64% 67.22%   32637913  7.80%  html/template.htmlReplacer
+  25622799  6.12% 73.34%   25622799  6.12%  reflect.packEface
+  19672622  4.70% 78.04%  371499586 88.79%  text/template.(*state).evalCall
+  17177215  4.11% 82.15%   36030799  8.61%  github.com/bigsm0uk/metrics-alert-server/internal/repository/pg.(*PostgresRepository).MetricList
+  13575454  3.24% 85.39%   13575454  3.24%  reflect.New
+  11927733  2.85% 88.24%   11927733  2.85%  text/template.(*state).evalEmptyInterface
+  11774902  2.81% 91.06%   11774902  2.81%  text/template.(*state).validateType
+  11403525  2.73% 93.78%   58218940 13.91%  text/template.(*state).evalArg
+   9885182  2.36% 96.14%    9885182  2.36%  github.com/jackc/pgx/v5/pgtype.scanPlanString.Scan
+   2490406   0.6% 96.74%    2490406   0.6%  fmt.Sprintf
+   2086262   0.5% 97.24%    2153500  0.51%  github.com/Masterminds/squirrel.replacePositionalPlaceholders
+    865102  0.21% 97.44%    6660024  1.59%  github.com/bigsm0uk/metrics-alert-server/internal/repository/pg.(*PostgresRepository).SaveOrUpdateBatch
+    862905  0.21% 97.65%    2630148  0.63%  github.com/Masterminds/squirrel.InsertBuilder.Values (inline)
+    294915  0.07% 97.72%  416821784 99.62%  github.com/go-chi/chi/v5/middleware.RequestID.func1
+    111418 0.027% 97.75%   16583071  3.96%  github.com/jackc/pgx/v5.(*baseRows).Scan
+     66727 0.016% 97.76%  416409437 99.52%  github.com/bigsm0uk/metrics-alert-server/internal/handler/middleware.LoggerMiddleware.func1
+     65537 0.016% 97.78%  408238854 97.57%  github.com/bigsm0uk/metrics-alert-server/pkg/openapi/metric.(*ServerInterfaceWrapper).GetAllMetrics

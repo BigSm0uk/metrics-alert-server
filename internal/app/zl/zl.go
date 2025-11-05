@@ -45,7 +45,7 @@ func developmentLogger() *zap.Logger {
 		InitialFields:    map[string]any{},
 	}
 
-	logger, _ := cfg.Build()
+	logger, _ := cfg.Build(zap.AddStacktrace(zapcore.DPanicLevel))
 	return logger
 }
 
@@ -71,7 +71,7 @@ func localLogger() *zap.Logger {
 		InitialFields:    map[string]any{},
 	}
 
-	logger, _ := cfg.Build()
+	logger, _ := cfg.Build(zap.AddStacktrace(zapcore.DPanicLevel))
 	return logger
 }
 
@@ -97,6 +97,6 @@ func productionLogger() *zap.Logger {
 		InitialFields:    map[string]any{},
 	}
 
-	logger, _ := cfg.Build()
+	logger, _ := cfg.Build(zap.AddStacktrace(zapcore.DPanicLevel))
 	return logger
 }

@@ -15,9 +15,6 @@ const (
 	EnvDevelopment = "development"
 	EnvProduction  = "production"
 	EnvLocal       = "local"
-
-	StorageTypeMem      = "mem"
-	StorageTypePostgres = "postgres"
 )
 
 type ServerConfig struct {
@@ -54,15 +51,12 @@ func LoadServerConfig() (*ServerConfig, error) {
 		_ = cleanenv.ReadEnv(cfg)
 
 	}
-	// Применяем флаги командной строки ТОЛЬКО если они были явно указаны
-	// ENV переменные имеют приоритет над флагами для KEY!
 	if *flagAddr != "" {
 		cfg.Addr = *flagAddr
 	}
 	if *flagFile != "" {
 		cfg.Store.FileStoragePath = *flagFile
 	}
-	// flagRestore всегда имеет значение (bool), проверяем через flag.Visit
 	flag.Visit(func(f *flag.Flag) {
 		if f.Name == "r" {
 			cfg.Store.Restore = *flagRestore
