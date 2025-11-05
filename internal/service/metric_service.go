@@ -14,15 +14,20 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/pkg/util"
 )
 
+// MetricService инкапсулирует бизнес-логику работы с метриками
+// и взаимодействует с репозиторием и долговременным хранилищем.
 type MetricService struct {
 	repository interfaces.MetricsRepository
 	store      interfaces.MetricsStore
 }
 
+// NewService создает сервис метрик с переданным репозиторием и стором.
 func NewService(repository interfaces.MetricsRepository, store interfaces.MetricsStore) *MetricService {
 	return &MetricService{repository: repository, store: store}
 }
 
+// SaveOrUpdateMetric сохраняет или обновляет одну метрику
+// с применением стратегии обновления (counter/gauge).
 func (s *MetricService) SaveOrUpdateMetric(ctx context.Context, metric *domain.Metrics) error {
 	// Получаем существующую метрику или создаем пустую для новой
 	oldMetric, err := s.repository.Metric(ctx, metric.ID, metric.MType)
@@ -76,6 +81,7 @@ func (s *MetricService) SaveOrUpdateMetric(ctx context.Context, metric *domain.M
 	return nil
 }
 
+// SaveOrUpdateMetricsBatch сохраняет/обновляет метрики батчем.
 func (s *MetricService) SaveOrUpdateMetricsBatch(ctx context.Context, metrics []*domain.Metrics) error {
 	err := s.repository.SaveOrUpdateBatch(ctx, metrics)
 	if err != nil {
@@ -88,6 +94,7 @@ func (s *MetricService) SaveOrUpdateMetricsBatch(ctx context.Context, metrics []
 	return nil
 }
 
+// GetAllMetrics возвращает список всех метрик.
 func (s *MetricService) GetAllMetrics(ctx context.Context) ([]domain.Metrics, error) {
 	m, err := s.repository.MetricList(ctx)
 	if err != nil {
@@ -97,6 +104,7 @@ func (s *MetricService) GetAllMetrics(ctx context.Context) ([]domain.Metrics, er
 	return m, nil
 }
 
+// GetMetric возвращает метрику по id и типу.
 func (s *MetricService) GetMetric(ctx context.Context, id, t string) (*domain.Metrics, error) {
 	m, err := s.repository.Metric(ctx, id, t)
 	if err != nil {
@@ -106,14 +114,17 @@ func (s *MetricService) GetMetric(ctx context.Context, id, t string) (*domain.Me
 	return m, nil
 }
 
+// GetEnrichMetric возвращает метрику с актуализированными значениями.
 func (s *MetricService) GetEnrichMetric(ctx context.Context, id, mType string) (*domain.Metrics, error) {
 	return s.repository.Metric(ctx, id, mType)
 }
 
+// Ping проверяет доступность нижележащего хранилища.
 func (s *MetricService) Ping(ctx context.Context) error {
 	return s.repository.Ping(ctx)
 }
 
+// Close закрывает соединения репозитория.
 func (s *MetricService) Close() error {
 	return s.repository.Close()
 }

@@ -12,6 +12,8 @@ import (
 	oapiMetric "github.com/bigsm0uk/metrics-alert-server/pkg/openapi/metric"
 )
 
+// NewRouter создает и настраивает HTTP-роутер chi с middleware и маршрутами OpenAPI.
+// key используется для валидации/добавления хеша ответа.
 func NewRouter(h *handler.MetricHandler, key string) *chi.Mux {
 	r := chi.NewRouter()
 

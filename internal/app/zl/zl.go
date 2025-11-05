@@ -7,11 +7,13 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/config"
 )
 
-// Log будет доступен всему коду как синглтон. //TODO Переделать, чтобы log передавался как аргумент
+// Log — глобальный логгер приложения. //TODO Переделать, чтобы log передавался как аргумент
 // Никакой код, кроме функции Initialize, не должен модифицировать эту переменную.
 // По умолчанию установлен no-op-логер, который не выводит никаких сообщений.
 var Log *zap.Logger = zap.NewNop()
 
+// InitLogger инициализирует глобальный логгер в зависимости от окружения.
+// Доступные окружения: production, local, development (по умолчанию).
 func InitLogger(env string) {
 	switch env {
 	case config.EnvProduction:

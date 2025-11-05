@@ -14,6 +14,9 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/pkg/util/hasher"
 )
 
+// MetricHandler обслуживает HTTP-запросы практического трека метрик.
+// Содержит ссылки на сервис метрик, шаблоны для HTML-рендеринга
+// и ключ для расчета хеша ответа.
 type MetricHandler struct {
 	oapiMetric.Unimplemented
 	service *service.MetricService
@@ -22,6 +25,10 @@ type MetricHandler struct {
 	as      *service.AuditService
 }
 
+// NewMetricHandler конструирует экземпляр обработчика метрик.
+// templatePath — путь к HTML-шаблону; при ошибке используется встроенный дефолтный шаблон.
+// key — секрет для заголовка HashSHA256.
+// as — сервис аудита.
 func NewMetricHandler(service *service.MetricService, templatePath, key string, as *service.AuditService) *MetricHandler {
 	tmpl := initializeTemplate(templatePath)
 
@@ -61,6 +68,7 @@ func initializeTemplate(path string) *template.Template {
 	return tmpl
 }
 
+// Close корректно закрывает зависимости обработчика (репозиторий и др.).
 func (h *MetricHandler) Close() error {
 	return h.service.Close()
 }

@@ -28,6 +28,7 @@ vars:
   REDOCLY: '{{.NODE_MODULES_DIR}}/redocly'
   GCI: '{{.BIN_DIR}}/gci'
   GOFUMPT: '{{.BIN_DIR}}/gofumpt'
+  GODOC: '{{.BIN_DIR}}/godoc'
 
 tasks:
   install-formatters:
@@ -169,3 +170,23 @@ tasks:
         echo "🚀 Запуск agent..."
         "{{.BIN_DIR}}"/agent
 
+  godoc:install:
+    desc: "Устанавливает godoc в ./bin"
+    summary: |
+      Устанавливает godoc для генерации документации
+    cmds:
+      - |
+        [ -f "{{.GODOC}}" ] || {
+          mkdir -p "{{.BIN_DIR}}"
+          GOBIN="{{.BIN_DIR}}" go install golang.org/x/tools/cmd/godoc@latest
+        }
+  godoc:run:
+    desc: "Запуск godoc"
+    deps: [ godoc:install ]
+    summary: |
+      Запускает godoc для генерации документации
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - |
+        echo "🚀 Запуск godoc на порту 6065..."
+        "{{.GODOC}}" -http=:6065
