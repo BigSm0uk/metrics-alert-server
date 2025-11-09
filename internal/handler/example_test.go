@@ -7,11 +7,13 @@ import (
 	"net/http/httptest"
 	"strings"
 
+	"go.uber.org/zap"
+
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/cache"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/config/audit"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/storage"
 	"github.com/bigsm0uk/metrics-alert-server/internal/repository/mem"
 	"github.com/bigsm0uk/metrics-alert-server/internal/service"
-	"go.uber.org/zap"
 )
 
 // ExampleMetricHandler_UpdateOrCreateMetricByBody демонстрирует обновление одной метрики через body.
@@ -24,7 +26,7 @@ func ExampleMetricHandler_UpdateOrCreateMetricByBody() {
 	// Аудит (выключен, чтобы не мешал примеру)
 	as := service.NewAuditService(&audit.AuditConfig{AuditURL: "", AuditFile: ""}, zap.NewNop())
 
-	h := NewMetricHandler(svc, "api/templates/metrics.html", "", as)
+	h := NewMetricHandler(svc, "api/templates/metrics.html", "", as, cache.New(cache.DefaultExpiration, 0))
 
 	// Тело запроса: counter метрика
 	body := `{"id":"requests","type":"counter","delta":5}`
@@ -51,7 +53,7 @@ func ExampleMetricHandler_UpdateOrCreateMetricsBatch() {
 	svc := service.NewService(repo, nil)
 	as := service.NewAuditService(&audit.AuditConfig{AuditURL: "", AuditFile: ""}, zap.NewNop())
 
-	h := NewMetricHandler(svc, "api/templates/metrics.html", "", as)
+	h := NewMetricHandler(svc, "api/templates/metrics.html", "", as, cache.New(cache.DefaultExpiration, 0))
 
 	body := `[
       {"id":"requests","type":"counter","delta":2},
@@ -75,7 +77,7 @@ func ExampleMetricHandler_GetAllMetrics() {
 	svc := service.NewService(repo, nil)
 	as := service.NewAuditService(&audit.AuditConfig{AuditURL: "", AuditFile: ""}, zap.NewNop())
 
-	h := NewMetricHandler(svc, "api/templates/metrics.html", "", as)
+	h := NewMetricHandler(svc, "api/templates/metrics.html", "", as, cache.New(cache.DefaultExpiration, 0))
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rr := httptest.NewRecorder()

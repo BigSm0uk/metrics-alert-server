@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/cache"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/config"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/server/store"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
@@ -34,7 +35,8 @@ func setupTestServer(t *testing.T) (*httptest.Server, *resty.Client) {
 
 	svc := service.NewService(r, ms)
 	as := service.NewAuditService(&cfg.Audit, zl.Log)
-	h := NewMetricHandler(svc, cfg.TemplatePath, cfg.Key, as)
+	cache := cache.New(cache.DefaultExpiration, 0)
+	h := NewMetricHandler(svc, cfg.TemplatePath, cfg.Key, as, cache)
 
 	// Используем сгенерированный OpenAPI роутер
 	router := chi.NewRouter()

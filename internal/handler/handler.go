@@ -9,6 +9,7 @@ import (
 
 	"github.com/bigsm0uk/metrics-alert-server/api/templates"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
+	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
 	"github.com/bigsm0uk/metrics-alert-server/internal/service"
 	oapiMetric "github.com/bigsm0uk/metrics-alert-server/pkg/openapi/metric"
 	"github.com/bigsm0uk/metrics-alert-server/pkg/util/hasher"
@@ -23,13 +24,14 @@ type MetricHandler struct {
 	tmpl    *template.Template
 	key     string
 	as      *service.AuditService
+	cache   interfaces.MetricsCache
 }
 
 // NewMetricHandler конструирует экземпляр обработчика метрик.
 // templatePath — путь к HTML-шаблону; при ошибке используется встроенный дефолтный шаблон.
 // key — секрет для заголовка HashSHA256.
 // as — сервис аудита.
-func NewMetricHandler(service *service.MetricService, templatePath, key string, as *service.AuditService) *MetricHandler {
+func NewMetricHandler(service *service.MetricService, templatePath, key string, as *service.AuditService, cache interfaces.MetricsCache) *MetricHandler {
 	tmpl := initializeTemplate(templatePath)
 
 	return &MetricHandler{
@@ -37,6 +39,7 @@ func NewMetricHandler(service *service.MetricService, templatePath, key string, 
 		tmpl:    tmpl,
 		key:     key,
 		as:      as,
+		cache:   cache,
 	}
 }
 
@@ -73,43 +76,58 @@ func (h *MetricHandler) Close() error {
 	return h.service.Close()
 }
 
+// handleError отправляет JSON-ответ с ошибкой.
+// statusCode — HTTP статус код (400, 404, 500 и т.д.).
+// message — текст ошибки; если пустой, используется стандартный текст для статус кода.
+func handleError(w http.ResponseWriter, statusCode int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+
+	// Если сообщение не указано, используем стандартный текст для статус кода
+	if message == "" {
+		message = http.StatusText(statusCode)
+	}
+
+	w.WriteHeader(statusCode)
+
+	// Формируем ответ в зависимости от статус кода
+	switch statusCode {
+	case http.StatusBadRequest:
+		json.NewEncoder(w).Encode(oapiMetric.BadRequestError{
+			Code:    statusCode,
+			Message: message,
+		})
+	case http.StatusNotFound:
+		json.NewEncoder(w).Encode(oapiMetric.BadRequestError{
+			Code:    statusCode,
+			Message: message,
+		})
+	case http.StatusInternalServerError:
+		json.NewEncoder(w).Encode(oapiMetric.InternalServerError{
+			Code:    statusCode,
+			Message: message,
+		})
+	default:
+		// Для других статус кодов используем BadRequestError как универсальный формат
+		json.NewEncoder(w).Encode(oapiMetric.BadRequestError{
+			Code:    statusCode,
+			Message: message,
+		})
+	}
+}
+
+// handleInternal отправляет ответ с ошибкой 500 Internal Server Error.
 func handleInternal(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
-
-	w.WriteHeader(http.StatusInternalServerError)
-	json.NewEncoder(w).Encode(oapiMetric.InternalServerError{
-		Code:    http.StatusInternalServerError,
-		Message: http.StatusText(http.StatusInternalServerError),
-	})
+	handleError(w, http.StatusInternalServerError, "")
 }
 
+// handleBadRequest отправляет ответ с ошибкой 400 Bad Request.
 func handleBadRequest(w http.ResponseWriter, errText string) {
-	w.Header().Set("Content-Type", "application/json")
-
-	message := http.StatusText(http.StatusBadRequest)
-	if errText != "" {
-		message = errText
-	}
-
-	w.WriteHeader(http.StatusBadRequest)
-	json.NewEncoder(w).Encode(oapiMetric.BadRequestError{
-		Code:    http.StatusBadRequest,
-		Message: message,
-	})
+	handleError(w, http.StatusBadRequest, errText)
 }
 
+// handleNotFound отправляет ответ с ошибкой 404 Not Found.
 func handleNotFound(w http.ResponseWriter, errText string) {
-	w.Header().Set("Content-Type", "application/json")
-
-	message := http.StatusText(http.StatusBadRequest)
-	if errText != "" {
-		message = errText
-	}
-	w.WriteHeader(http.StatusNotFound)
-	json.NewEncoder(w).Encode(oapiMetric.BadRequestError{
-		Code:    http.StatusNotFound,
-		Message: message,
-	})
+	handleError(w, http.StatusNotFound, errText)
 }
 
 func jsonWithHashValueHandler(w http.ResponseWriter, data any, key string) {

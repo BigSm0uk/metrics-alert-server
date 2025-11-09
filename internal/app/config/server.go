@@ -7,6 +7,7 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/config/audit"
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/config/cache"
 	S "github.com/bigsm0uk/metrics-alert-server/internal/app/config/storage"
 	Store "github.com/bigsm0uk/metrics-alert-server/internal/app/config/store"
 )
@@ -25,6 +26,7 @@ type ServerConfig struct {
 	Store        Store.StoreConfig `required:"true"`
 	Key          string            `env:"KEY"`
 	Audit        audit.AuditConfig `yaml:"audit"`
+	Cache        cache.CacheConfig `yaml:"cache"`
 }
 
 func LoadServerConfig() (*ServerConfig, error) {

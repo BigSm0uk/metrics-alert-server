@@ -38,9 +38,11 @@ func (s *AuditService) NotifyAll(message domain.AuditMessage) {
 	}
 }
 
-func (s *AuditService) Attach(o interfaces.AuditObserver) {
-	s.observers[o.GetID()] = o
-	s.logger.Debug("attaching observer", zap.String("observer_id", o.GetID()))
+func (s *AuditService) Attach(observers ...interfaces.AuditObserver) {
+	for _, o := range observers {
+		s.observers[o.GetID()] = o
+		s.logger.Debug("attaching observer", zap.String("observer_id", o.GetID()))
+	}
 }
 
 func (s *AuditService) Detach(ID string) {

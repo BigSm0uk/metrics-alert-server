@@ -5,6 +5,8 @@ import (
 	"io"
 	"time"
 
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/audit"
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/cache"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/config"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/server/store"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
@@ -12,7 +14,6 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/internal/handler"
 	"github.com/bigsm0uk/metrics-alert-server/internal/repository"
 	"github.com/bigsm0uk/metrics-alert-server/internal/service"
-	"github.com/bigsm0uk/metrics-alert-server/internal/service/audit"
 )
 
 // Container представляет DI контейнер для управления зависимостями
@@ -23,6 +24,7 @@ type Container struct {
 	service      *service.MetricService
 	handler      *handler.MetricHandler
 	auditService *service.AuditService
+	cache        interfaces.MetricsCache
 }
 
 // GetRepository возвращает репозиторий (для тестирования)
@@ -107,10 +109,18 @@ func WithService() ContainerOptions {
 	}
 }
 
+// WithCache инициализирует кеш
+func WithCache() ContainerOptions {
+	return func(c *Container) error {
+		c.cache = cache.NewCache(c.config.Cache.CleanupInterval)
+		return nil
+	}
+}
+
 // WithHandler инициализирует обработчик
 func WithHandler() ContainerOptions {
 	return func(c *Container) error {
-		c.handler = handler.NewMetricHandler(c.service, c.config.TemplatePath, c.config.Key, c.auditService)
+		c.handler = handler.NewMetricHandler(c.service, c.config.TemplatePath, c.config.Key, c.auditService, c.cache)
 		return nil
 	}
 }
@@ -143,8 +153,10 @@ func WithBootstrap() ContainerOptions {
 func WithAuditService() ContainerOptions {
 	return func(c *Container) error {
 		c.auditService = service.NewAuditService(&c.config.Audit, zl.Log)
-		c.auditService.Attach(audit.NewFileObserver(c.config.Audit.AuditFile, zl.Log))
-		c.auditService.Attach(audit.NewURLObserver(c.config.Audit.AuditURL, zl.Log))
+
+		observers := audit.CreateAuditObservers(&c.config.Audit, zl.Log)
+		c.auditService.Attach(observers...)
+
 		return nil
 	}
 }

@@ -10,7 +10,7 @@ type AuditObserver interface {
 
 // AuditSubject - управляет наблюдателями
 type AuditSubject interface {
-	Attach(AuditObserver)
+	Attach(...AuditObserver)
 	Detach(string)
 	NotifyAll(domain.AuditMessage)
 }
