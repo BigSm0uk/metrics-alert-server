@@ -7,10 +7,10 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/bigsm0uk/metrics-alert-server/internal/agent"
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/agent"
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/config"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/semaphore"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
-	"github.com/bigsm0uk/metrics-alert-server/internal/config"
 )
 
 type Agent struct {
@@ -25,7 +25,6 @@ func NewAgent(cfg *config.AgentConfig) *Agent {
 }
 
 func (a *Agent) Run() error {
-
 	wg := sync.WaitGroup{}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

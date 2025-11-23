@@ -22,7 +22,6 @@ func GetDefault[T Number](value *T) T {
 
 // CompressJSON сжимает данные в JSON формате с использованием gzip
 func CompressJSON(data []byte) ([]byte, error) {
-
 	var buf bytes.Buffer
 
 	writer := gzip.NewWriter(&buf)

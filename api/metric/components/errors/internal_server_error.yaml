@@ -1,0 +1,13 @@
+type: object
+required:
+  - code
+  - message
+properties:
+  code:
+    type: integer
+    description: HTTP-код ошибки
+    example: 500
+  message:
+    type: string
+    description: Описание ошибки
+    example: "Internal server error"

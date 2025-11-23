@@ -1,0 +1,26 @@
+get:
+  summary: Ping
+  description: Проверка состояния подключения к БД
+  operationId: ping
+  tags:
+    - metric
+  responses:
+    '200':
+      description: Подключениы к БД успешно
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: "pong"
+    '500':
+      description: Ошибка при подключении к БД
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/internal_server_error.yaml
+    default:
+      description: Неизвестная ошибка
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/generic_error.yaml

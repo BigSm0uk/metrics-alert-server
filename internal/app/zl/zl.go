@@ -4,14 +4,16 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/bigsm0uk/metrics-alert-server/internal/config"
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/config"
 )
 
-// Log будет доступен всему коду как синглтон.
+// Log — глобальный логгер приложения. //TODO Переделать, чтобы log передавался как аргумент
 // Никакой код, кроме функции Initialize, не должен модифицировать эту переменную.
 // По умолчанию установлен no-op-логер, который не выводит никаких сообщений.
 var Log *zap.Logger = zap.NewNop()
 
+// InitLogger инициализирует глобальный логгер в зависимости от окружения.
+// Доступные окружения: production, local, development (по умолчанию).
 func InitLogger(env string) {
 	switch env {
 	case config.EnvProduction:
@@ -33,8 +35,6 @@ func developmentLogger() *zap.Logger {
 			LevelKey:       "level",
 			TimeKey:        "time",
 			NameKey:        "logger",
-			CallerKey:      "caller",
-			FunctionKey:    "function",
 			StacktraceKey:  "stacktrace",
 			EncodeLevel:    zapcore.CapitalColorLevelEncoder,
 			EncodeTime:     zapcore.ISO8601TimeEncoder,
@@ -47,7 +47,7 @@ func developmentLogger() *zap.Logger {
 		InitialFields:    map[string]any{},
 	}
 
-	logger, _ := cfg.Build()
+	logger, _ := cfg.Build(zap.AddStacktrace(zapcore.DPanicLevel))
 	return logger
 }
 
@@ -61,8 +61,6 @@ func localLogger() *zap.Logger {
 			LevelKey:       "level",
 			TimeKey:        "time",
 			NameKey:        "logger",
-			CallerKey:      "caller",
-			FunctionKey:    "function",
 			StacktraceKey:  "stacktrace",
 			EncodeLevel:    zapcore.CapitalColorLevelEncoder,
 			EncodeTime:     zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05"),
@@ -75,7 +73,7 @@ func localLogger() *zap.Logger {
 		InitialFields:    map[string]any{},
 	}
 
-	logger, _ := cfg.Build()
+	logger, _ := cfg.Build(zap.AddStacktrace(zapcore.DPanicLevel))
 	return logger
 }
 
@@ -89,8 +87,6 @@ func productionLogger() *zap.Logger {
 			LevelKey:       "level",
 			TimeKey:        "time",
 			NameKey:        "logger",
-			CallerKey:      "caller",
-			FunctionKey:    "function",
 			StacktraceKey:  "stacktrace",
 			EncodeLevel:    zapcore.LowercaseLevelEncoder,
 			EncodeTime:     zapcore.ISO8601TimeEncoder,
@@ -103,6 +99,6 @@ func productionLogger() *zap.Logger {
 		InitialFields:    map[string]any{},
 	}
 
-	logger, _ := cfg.Build()
+	logger, _ := cfg.Build(zap.AddStacktrace(zapcore.DPanicLevel))
 	return logger
 }

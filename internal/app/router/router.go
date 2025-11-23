@@ -1,7 +1,6 @@
 package router
 
 import (
-	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -10,10 +9,15 @@ import (
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/handler"
 	lm "github.com/bigsm0uk/metrics-alert-server/internal/handler/middleware"
+	oapiMetric "github.com/bigsm0uk/metrics-alert-server/pkg/openapi/metric"
 )
 
+// NewRouter создает и настраивает HTTP-роутер chi с middleware и маршрутами OpenAPI.
+// key используется для валидации/добавления хеша ответа.
 func NewRouter(h *handler.MetricHandler, key string) *chi.Mux {
 	r := chi.NewRouter()
+
+	// Глобальные middleware
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.GetHead)
 	r.Use(cors.Handler(cors.Options{
@@ -32,42 +36,10 @@ func NewRouter(h *handler.MetricHandler, key string) *chi.Mux {
 	r.Use(lm.LoggerMiddleware)
 	r.Use(lm.GzipDecompressMiddleware)
 	r.Use(lm.GzipCompressMiddleware)
+	r.Use(lm.WithHashValidation(key))
 
-	MapRoutes(r, h, key)
+	// Монтируем OpenAPI сгенерированный роутер
+	oapiMetric.HandlerFromMux(h, r)
 
 	return r
-}
-
-func MapRoutes(r *chi.Mux, h *handler.MetricHandler, key string) {
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("OK"))
-	})
-	r.Route("/update", func(r chi.Router) {
-		r.Use(func(next http.Handler) http.Handler {
-			return lm.HashHandlerMiddleware(next, key)
-		})
-		r.Post("/", h.UpdateMetricByBody)
-		r.Post("/{type}/{id}/{value}", h.UpdateMetricByParam)
-	})
-	r.Route("/updates", func(r chi.Router) {
-		r.Use(func(next http.Handler) http.Handler {
-			return lm.HashHandlerMiddleware(next, key)
-		})
-		r.Post("/", h.UpdateMetricsBatch)
-	})
-	r.Get("/", h.GetAllMetrics)
-	r.Route("/value", func(r chi.Router) {
-		r.Post("/", h.EnrichMetric)
-		r.Get("/{type}/{id}", h.GetMetric)
-	})
-	r.Get("/ping", h.Ping)
-
-	r.Get("/docs", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html")
-		http.ServeFile(w, r, "docs/redoc.html")
-	})
-	r.Get("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/yaml")
-		http.ServeFile(w, r, "api/openapi.yaml")
-	})
 }

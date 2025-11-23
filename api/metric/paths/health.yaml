@@ -1,0 +1,13 @@
+get:
+  summary: Health check
+  description: Проверка состояния сервиса
+  operationId: healthCheck
+  tags:
+    - metric
+  responses:
+    '200':
+      description: Сервис работает
+      content:
+        text/plain:
+          schema:
+            type: string

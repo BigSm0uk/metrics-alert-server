@@ -7,6 +7,9 @@
 
 # Test binary, built with `go test -c`
 *.test
+benchmarks/
+coverage.out
+coverage.html
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
@@ -23,3 +26,11 @@ vendor/
 # IDEs directories
 .idea
 .vscode
+node_modules
+bin
+store.json
+.DS_Store
+# Logs
+*.log
+# Temp files
+.DS_Store

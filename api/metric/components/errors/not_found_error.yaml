@@ -1,0 +1,15 @@
+type: object
+properties:
+  error:
+    type: string
+    example: "Not Found"
+  message:
+    type: string
+    example: "The requested resource was not found"
+  status:
+    type: integer
+    example: 404
+required:
+  - error
+  - message
+  - status

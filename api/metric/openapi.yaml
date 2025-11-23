@@ -1,0 +1,55 @@
+openapi: 3.0.3
+info:
+  title: Metric Service
+  description: API для сервиса сбора метрик и алертинга
+  version: 1.0.0
+
+tags: 
+  - name: metric
+    description: Metric операции
+
+paths:
+  /health:
+    $ref: ./paths/health.yaml
+  /update:
+    $ref: ./paths/update.yaml
+  /update/{type}/{id}/{value}:
+    $ref: ./paths/update_param.yaml
+  /updates:
+    $ref: ./paths/updates.yaml
+  /: 
+    $ref: ./paths/get_all_metrics.yaml
+  /value:
+    $ref: ./paths/value.yaml
+  /value/{type}/{id}:
+    $ref: ./paths/value_param.yaml
+  /ping:
+    $ref: ./paths/ping.yaml
+  /docs:
+    $ref: ./paths/docs.yaml
+  /openapi:
+    $ref: ./paths/oapi.yaml
+
+components:
+  schemas:
+    Metric:
+      $ref: ./components/schemas/metric.yaml
+    MetricRequest:
+      $ref: ./components/schemas/metric_request.yaml
+    MetricByBodyRequest:
+      $ref: ./components/schemas/metric_by_body_request.yaml
+    BadRequestError:
+      $ref: ./components/errors/bad_request_error.yaml
+    GenericError:
+      $ref: ./components/errors/generic_error.yaml
+    InternalServerError:
+      $ref: ./components/errors/internal_server_error.yaml
+    NotFoundError:
+      $ref: ./components/errors/not_found_error.yaml
+  parameters:
+    Type:
+      $ref: ./params/type.yaml
+    Id:
+      $ref: ./params/id.yaml
+    Value:
+      $ref: ./params/value.yaml

@@ -1,0 +1,481 @@
+openapi: 3.0.3
+info:
+  title: Metric Service
+  description: API для сервиса сбора метрик и алертинга
+  version: 1.0.0
+tags:
+  - name: metric
+    description: Metric операции
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Проверка состояния сервиса
+      operationId: healthCheck
+      tags:
+        - metric
+      responses:
+        '200':
+          description: Сервис работает
+          content:
+            text/plain:
+              schema:
+                type: string
+  /update:
+    post:
+      summary: Обновить/создать метрику по телу запроса
+      description: Обновить/создать метрику по телу запроса
+      operationId: updateOrCreateMetricByBody
+      tags:
+        - metric
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/metric_request'
+      responses:
+        '200':
+          description: Метрика обновлена/создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/metric'
+        '400':
+          description: Некорректные параметры
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bad_request_error'
+        '404':
+          description: Метрика не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/not_found_error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/internal_server_error'
+        default:
+          description: Неизвестная ошибка
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/generic_error'
+  /update/{type}/{id}/{value}:
+    post:
+      summary: Обновить/создать метрику по параметрам
+      description: Обновить/создать метрику по параметрам
+      operationId: updateOrCreateMetricByParam
+      tags:
+        - metric
+      parameters:
+        - $ref: '#/components/parameters/type'
+        - $ref: '#/components/parameters/id'
+        - $ref: '#/components/parameters/value'
+      responses:
+        '200':
+          description: Метрика обновлена
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Metric updated
+        '400':
+          description: Некорректные параметры
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bad_request_error'
+        '404':
+          description: Метрика не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/not_found_error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/internal_server_error'
+        default:
+          description: Неизвестная ошибка
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/generic_error'
+  /updates:
+    post:
+      summary: Обновить/создать несколько метрик по телу запроса
+      description: Обновить/создать несколько метрик по телу запроса
+      operationId: updateOrCreateMetricsBatch
+      tags:
+        - metric
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/metric_request'
+      responses:
+        '200':
+          description: Метрики обновлены
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Successfully updated {count} metrics
+        '400':
+          description: Некорректные параметры
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bad_request_error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/internal_server_error'
+        default:
+          description: Неизвестная ошибка
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/generic_error'
+  /:
+    get:
+      summary: Получить все метрики
+      description: Получить все метрики
+      operationId: getAllMetrics
+      tags:
+        - metric
+      responses:
+        '200':
+          description: Все метрики
+          content:
+            text/html:
+              schema:
+                type: string
+                example: All metrics
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/internal_server_error'
+        default:
+          description: Неизвестная ошибка
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/generic_error'
+  /value:
+    post:
+      summary: Получить значение метрики по телу запроса
+      description: Получить значение метрики по телу запроса
+      operationId: getValueByBody
+      tags:
+        - metric
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/metric_by_body_request'
+      responses:
+        '200':
+          description: Значение метрики
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/metric'
+        '400':
+          description: Некорректные параметры
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bad_request_error'
+        '404':
+          description: Метрика не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/not_found_error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/internal_server_error'
+        default:
+          description: Неизвестная ошибка
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/generic_error'
+  /value/{type}/{id}:
+    get:
+      summary: Получить значение метрики по параметрам
+      description: Получить значение метрики по параметрам
+      operationId: getValueByParam
+      tags:
+        - metric
+      parameters:
+        - $ref: '#/components/parameters/type'
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Значение метрики
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: '100.5'
+        '400':
+          description: Некорректные параметры
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bad_request_error'
+        '404':
+          description: Метрика не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/not_found_error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/internal_server_error'
+        default:
+          description: Неизвестная ошибка
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/generic_error'
+  /ping:
+    get:
+      summary: Ping
+      description: Проверка состояния подключения к БД
+      operationId: ping
+      tags:
+        - metric
+      responses:
+        '200':
+          description: Подключениы к БД успешно
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: pong
+        '500':
+          description: Ошибка при подключении к БД
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/internal_server_error'
+        default:
+          description: Неизвестная ошибка
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/generic_error'
+  /docs:
+    get:
+      summary: HTML-страница с документацией API
+      description: Возвращает HTML-страницу с документацией API
+      operationId: getDocs
+      tags:
+        - metric
+      responses:
+        '200':
+          description: HTML-страница с документацией API
+          content:
+            text/html:
+              schema:
+                type: string
+  /openapi:
+    get:
+      summary: OpenAPI specification
+      description: Возвращает OpenAPI specification
+      operationId: getOpenAPI
+      tags:
+        - metric
+      responses:
+        '200':
+          description: OpenAPI specification в формате YAML
+          content:
+            text/yaml:
+              schema:
+                type: string
+components:
+  schemas:
+    Metric:
+      $ref: '#/components/schemas/metric'
+    MetricRequest:
+      $ref: '#/components/schemas/metric_request'
+    MetricByBodyRequest:
+      $ref: '#/components/schemas/metric_by_body_request'
+    BadRequestError:
+      $ref: '#/components/schemas/bad_request_error'
+    GenericError:
+      $ref: '#/components/schemas/generic_error'
+    InternalServerError:
+      $ref: '#/components/schemas/internal_server_error'
+    NotFoundError:
+      $ref: '#/components/schemas/not_found_error'
+    metric_request:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          description: Идентификатор метрики
+        type:
+          type: string
+          description: Тип метрики
+        value:
+          type: string
+          description: Значение метрики для gauge метрик
+        delta:
+          type: integer
+          description: Значение для counter метрик (накопительное)
+    generic_error:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: integer
+          description: HTTP-код ошибки
+          example: 500
+        message:
+          type: string
+          description: Описание ошибки
+          example: An unexpected error occurred
+    metric:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          description: Идентификатор метрики
+        type:
+          type: string
+          description: Тип метрики
+        value:
+          type: string
+          description: Значение метрики для gauge метрик
+        delta:
+          type: integer
+          description: Значение для counter метрик (накопительное)
+        hash:
+          type: string
+          description: Хеш для проверки целостности данных
+    bad_request_error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          description: HTTP-код ошибки
+          example: 400
+        message:
+          type: string
+          description: Описание ошибки
+          example: Invalid metric type
+    not_found_error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Not Found
+        message:
+          type: string
+          example: The requested resource was not found
+        status:
+          type: integer
+          example: 404
+      required:
+        - error
+        - message
+        - status
+    internal_server_error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          description: HTTP-код ошибки
+          example: 500
+        message:
+          type: string
+          description: Описание ошибки
+          example: Internal server error
+    metric_by_body_request:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          description: Идентификатор метрики
+        type:
+          type: string
+          description: Тип метрики
+  parameters:
+    Type:
+      $ref: '#/components/parameters/type'
+    Id:
+      $ref: '#/components/parameters/id'
+    Value:
+      $ref: '#/components/parameters/value'
+    type:
+      name: type
+      in: path
+      required: true
+      description: Тип метрики (gauge или counter)
+      schema:
+        type: string
+        enum:
+          - gauge
+          - counter
+      x-go-name: MType
+      x-go-type: string
+    id:
+      name: id
+      in: path
+      required: true
+      description: Идентификатор метрики
+      schema:
+        type: string
+      x-go-name: ID
+      x-go-type: string
+    value:
+      name: value
+      in: path
+      required: true
+      description: Значение метрики
+      schema:
+        type: string
+      x-go-name: Value
+      x-go-type: string

@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
+	"errors"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
@@ -10,21 +12,23 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/bigsm0uk/metrics-alert-server/internal/app/config"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/router"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
-	"github.com/bigsm0uk/metrics-alert-server/internal/config"
+	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
 	"github.com/bigsm0uk/metrics-alert-server/internal/handler"
-	"github.com/bigsm0uk/metrics-alert-server/internal/interfaces"
+	"github.com/bigsm0uk/metrics-alert-server/internal/service"
 )
 
 type Server struct {
 	cfg *config.ServerConfig
 	h   *handler.MetricHandler
-	Ms  interfaces.MetricsStore
+	ms  interfaces.MetricsStore
+	as  *service.AuditService
 }
 
-func NewServer(cfg *config.ServerConfig, h *handler.MetricHandler, ms interfaces.MetricsStore) *Server {
-	return &Server{cfg: cfg, h: h, Ms: ms}
+func NewServer(cfg *config.ServerConfig, h *handler.MetricHandler, ms interfaces.MetricsStore, as *service.AuditService) *Server {
+	return &Server{cfg: cfg, h: h, ms: ms, as: as}
 }
 
 func (a *Server) Run() error {
@@ -34,13 +38,16 @@ func (a *Server) Run() error {
 		Addr:    a.cfg.Addr,
 		Handler: r,
 	}
-
+	go func() {
+		zl.Log.Info("pprof server listening on :6060")
+		zl.Log.Info("error starting pprof server", zap.Error(http.ListenAndServe("localhost:6060", nil)))
+	}()
 	go func() {
 		zl.Log.Info("starting server", zap.String("Addr", "http://"+a.cfg.Addr))
 
 		ctx := context.Background()
-		a.Ms.StartProcess(ctx)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		a.ms.StartProcess(ctx)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			zl.Log.Fatal("failed to start server", zap.Error(err))
 		}
 	}()
@@ -53,7 +60,7 @@ func (a *Server) Run() error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := a.Ms.Close(ctx); err != nil {
+	if err := a.ms.Close(ctx); err != nil {
 		zl.Log.Error("failed to close metric store", zap.Error(err))
 		return err
 	}
