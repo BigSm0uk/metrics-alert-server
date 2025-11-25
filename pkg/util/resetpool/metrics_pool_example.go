@@ -1,4 +1,4 @@
-package resetter_pool
+package resetpool
 
 import "github.com/bigsm0uk/metrics-alert-server/internal/domain"
 
@@ -17,14 +17,14 @@ func MetricsPool() *Pool[*domain.Metrics] {
 // Пример использования:
 //
 //	pool := util.MetricsPool()
-//	
+//
 //	// Получаем метрику из пула
 //	metric := pool.Get()
-//	
+//
 //	// Используем метрику
 //	metric.ID = "cpu_usage"
 //	metric.MType = "gauge"
 //	*metric.Value = 85.5
-//	
+//
 //	// Возвращаем в пул (автоматически сбросится)
 //	pool.Put(metric)
