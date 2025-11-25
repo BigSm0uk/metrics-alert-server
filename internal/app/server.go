@@ -14,41 +14,41 @@ import (
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/config"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/router"
-	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
 	"github.com/bigsm0uk/metrics-alert-server/internal/handler"
 	"github.com/bigsm0uk/metrics-alert-server/internal/service"
 )
 
 type Server struct {
-	cfg *config.ServerConfig
-	h   *handler.MetricHandler
-	ms  interfaces.MetricsStore
-	as  *service.AuditService
+	cfg    *config.ServerConfig
+	h      *handler.MetricHandler
+	ms     interfaces.MetricsStore
+	as     *service.AuditService
+	logger *zap.Logger
 }
 
-func NewServer(cfg *config.ServerConfig, h *handler.MetricHandler, ms interfaces.MetricsStore, as *service.AuditService) *Server {
-	return &Server{cfg: cfg, h: h, ms: ms, as: as}
+func NewServer(cfg *config.ServerConfig, h *handler.MetricHandler, ms interfaces.MetricsStore, as *service.AuditService, logger *zap.Logger) *Server {
+	return &Server{cfg: cfg, h: h, ms: ms, as: as, logger: logger}
 }
 
 func (a *Server) Run() error {
-	r := router.NewRouter(a.h, a.cfg.Key)
+	r := router.NewRouter(a.h, a.cfg.Key, a.logger)
 
 	srv := &http.Server{
 		Addr:    a.cfg.Addr,
 		Handler: r,
 	}
 	go func() {
-		zl.Log.Info("pprof server listening on :6060")
-		zl.Log.Info("error starting pprof server", zap.Error(http.ListenAndServe("localhost:6060", nil)))
+		a.logger.Info("pprof server listening on :6060")
+		a.logger.Info("error starting pprof server", zap.Error(http.ListenAndServe("localhost:6060", nil)))
 	}()
 	go func() {
-		zl.Log.Info("starting server", zap.String("Addr", "http://"+a.cfg.Addr))
+		a.logger.Info("starting server", zap.String("Addr", "http://"+a.cfg.Addr))
 
 		ctx := context.Background()
 		a.ms.StartProcess(ctx)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			zl.Log.Fatal("failed to start server", zap.Error(err))
+			a.logger.Fatal("failed to start server", zap.Error(err))
 		}
 	}()
 
@@ -56,24 +56,24 @@ func (a *Server) Run() error {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
 
-	zl.Log.Info("shutting down server ...")
+	a.logger.Info("shutting down server ...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := a.ms.Close(ctx); err != nil {
-		zl.Log.Error("failed to close metric store", zap.Error(err))
+		a.logger.Error("failed to close metric store", zap.Error(err))
 		return err
 	}
 	if err := a.h.Close(); err != nil {
-		zl.Log.Error("failed to close metric handler", zap.Error(err))
+		a.logger.Error("failed to close metric handler", zap.Error(err))
 		return err
 	}
 
 	if err := srv.Shutdown(ctx); err != nil {
-		zl.Log.Error("server forced to shutdown", zap.Error(err))
+		a.logger.Error("server forced to shutdown", zap.Error(err))
 		return err
 	}
 
-	zl.Log.Info("server exiting")
+	a.logger.Info("server exiting")
 	return nil
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/goccy/go-json"
 	"go.uber.org/zap"
 
-	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	oapiMetric "github.com/bigsm0uk/metrics-alert-server/pkg/openapi/metric"
 )
@@ -39,7 +38,7 @@ func (h *MetricHandler) UpdateOrCreateMetricByParam(w http.ResponseWriter, r *ht
 		handleBadRequest(w, err.Error())
 		return
 	}
-	jsonWithHashValueHandler(w, m, h.key)
+	h.jsonWithHashValueHandler(w, m, h.key)
 	h.notifyAudit(r.RemoteAddr, m)
 }
 
@@ -72,12 +71,12 @@ func (h *MetricHandler) UpdateOrCreateMetricByBody(w http.ResponseWriter, r *htt
 
 	updatedMetric, err := h.service.GetEnrichMetric(ctx, m.ID, m.MType)
 	if err != nil {
-		zl.Log.Error("failed to get enriched metric", zap.Error(err))
+		h.logger.Error("failed to get enriched metric", zap.Error(err))
 		handleInternal(w)
 		return
 	}
 
-	jsonWithHashValueHandler(w, updatedMetric, h.key)
+	h.jsonWithHashValueHandler(w, updatedMetric, h.key)
 	h.notifyAudit(r.RemoteAddr, updatedMetric)
 }
 
@@ -112,7 +111,7 @@ func (h *MetricHandler) UpdateOrCreateMetricsBatch(w http.ResponseWriter, r *htt
 		handleBadRequest(w, err.Error())
 		return
 	}
-	jsonWithHashValueHandler(w, metrics, h.key)
+	h.jsonWithHashValueHandler(w, metrics, h.key)
 	h.notifyAudit(r.RemoteAddr, metrics...)
 }
 
@@ -137,7 +136,7 @@ func (h *MetricHandler) GetValueByBody(w http.ResponseWriter, r *http.Request) {
 		handleNotFound(w, err.Error())
 		return
 	}
-	jsonWithHashValueHandler(w, m, h.key)
+	h.jsonWithHashValueHandler(w, m, h.key)
 }
 
 func (h *MetricHandler) notifyAudit(ip string, metrics ...*domain.Metrics) {
