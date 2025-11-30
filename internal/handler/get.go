@@ -8,7 +8,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/cache"
-	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	oapiMetric "github.com/bigsm0uk/metrics-alert-server/pkg/openapi/metric"
 )
@@ -18,7 +17,7 @@ func (h *MetricHandler) Ping(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	err := h.service.Ping(ctx)
 	if err != nil {
-		zl.Log.Error("database connection failed", zap.Error(err))
+		h.logger.Error("database connection failed", zap.Error(err))
 		handleInternal(w)
 		return
 	}
@@ -58,7 +57,7 @@ func (h *MetricHandler) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
 
 	m, err := h.service.GetAllMetrics(ctx)
 	if err != nil {
-		zl.Log.Error("failed to get all metrics", zap.Error(err))
+		h.logger.Error("failed to get all metrics", zap.Error(err))
 		handleInternal(w)
 		return
 	}
@@ -68,7 +67,7 @@ func (h *MetricHandler) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
 
 	var buf bytes.Buffer
 	if err := h.tmpl.Execute(&buf, m); err != nil {
-		zl.Log.Error("failed to execute template", zap.Error(err))
+		h.logger.Error("failed to execute template", zap.Error(err))
 		handleInternal(w)
 		return
 	}

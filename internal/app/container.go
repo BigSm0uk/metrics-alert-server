@@ -5,6 +5,8 @@ import (
 	"io"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/audit"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/cache"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/config"
@@ -19,6 +21,7 @@ import (
 // Container представляет DI контейнер для управления зависимостями
 type Container struct {
 	config       *config.ServerConfig
+	logger       *zap.Logger
 	repository   interfaces.MetricsRepository
 	store        interfaces.MetricsStore
 	service      *service.MetricService
@@ -72,7 +75,7 @@ func WithConfig() ContainerOptions {
 // WithLogger инициализирует логгер
 func WithLogger() ContainerOptions {
 	return func(c *Container) error {
-		zl.InitLogger(c.config.Env)
+		c.logger = zl.NewLogger(c.config.Env)
 		return nil
 	}
 }
@@ -80,7 +83,7 @@ func WithLogger() ContainerOptions {
 // WithRepository инициализирует репозиторий
 func WithRepository() ContainerOptions {
 	return func(c *Container) error {
-		repo, err := repository.InitRepository(context.Background(), c.config)
+		repo, err := repository.InitRepository(context.Background(), c.config, c.logger)
 		if err != nil {
 			return err
 		}
@@ -92,7 +95,7 @@ func WithRepository() ContainerOptions {
 // WithStore инициализирует хранилище
 func WithStore() ContainerOptions {
 	return func(c *Container) error {
-		st, err := store.InitStore(c.repository, &c.config.Store)
+		st, err := store.InitStore(c.repository, &c.config.Store, c.logger)
 		if err != nil {
 			return err
 		}
@@ -104,7 +107,7 @@ func WithStore() ContainerOptions {
 // WithService инициализирует сервис
 func WithService() ContainerOptions {
 	return func(c *Container) error {
-		c.service = service.NewService(c.repository, c.store)
+		c.service = service.NewService(c.repository, c.store, c.logger)
 		return nil
 	}
 }
@@ -120,7 +123,7 @@ func WithCache() ContainerOptions {
 // WithHandler инициализирует обработчик
 func WithHandler() ContainerOptions {
 	return func(c *Container) error {
-		c.handler = handler.NewMetricHandler(c.service, c.config.TemplatePath, c.config.Key, c.auditService, c.cache)
+		c.handler = handler.NewMetricHandler(c.service, c.config.TemplatePath, c.config.Key, c.auditService, c.cache, c.logger)
 		return nil
 	}
 }
@@ -152,9 +155,9 @@ func WithBootstrap() ContainerOptions {
 // WithAuditService инициализирует сервис аудита
 func WithAuditService() ContainerOptions {
 	return func(c *Container) error {
-		c.auditService = service.NewAuditService(&c.config.Audit, zl.Log)
+		c.auditService = service.NewAuditService(&c.config.Audit, c.logger)
 
-		observers := audit.CreateAuditObservers(&c.config.Audit, zl.Log)
+		observers := audit.CreateAuditObservers(&c.config.Audit, c.logger)
 		c.auditService.Attach(observers...)
 
 		return nil
@@ -163,5 +166,5 @@ func WithAuditService() ContainerOptions {
 
 // Build создает новый сервер
 func Build(c *Container) *Server {
-	return NewServer(c.config, c.handler, c.store, c.auditService)
+	return NewServer(c.config, c.handler, c.store, c.auditService, c.logger)
 }

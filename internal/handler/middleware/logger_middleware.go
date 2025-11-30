@@ -6,8 +6,6 @@ import (
 
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
-
-	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 )
 
 type statusRecorder struct {
@@ -27,23 +25,25 @@ func (r *statusRecorder) Write(b []byte) (int, error) {
 	return size, err
 }
 
-func LoggerMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		requestID := middleware.GetReqID(r.Context())
-		remoteIP := r.RemoteAddr
+func LoggerMiddleware(logger *zap.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+			requestID := middleware.GetReqID(r.Context())
+			remoteIP := r.RemoteAddr
 
-		recorder := &statusRecorder{ResponseWriter: w, status: 200}
-		next.ServeHTTP(recorder, r)
+			recorder := &statusRecorder{ResponseWriter: w, status: 200}
+			next.ServeHTTP(recorder, r)
 
-		zl.Log.Info("request",
-			zap.String("method", r.Method),
-			zap.String("path", r.URL.Path),
-			zap.String("remote_addr", remoteIP),
-			zap.String("request_id", requestID),
-			zap.Duration("duration", time.Since(start)),
-			zap.Int("response_status", recorder.status),
-			zap.Int("response_size", recorder.size),
-		)
-	})
+			logger.Info("request",
+				zap.String("method", r.Method),
+				zap.String("path", r.URL.Path),
+				zap.String("remote_addr", remoteIP),
+				zap.String("request_id", requestID),
+				zap.Duration("duration", time.Since(start)),
+				zap.Int("response_status", recorder.status),
+				zap.Int("response_size", recorder.size),
+			)
+		})
+	}
 }

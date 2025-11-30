@@ -11,7 +11,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/semaphore"
-	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/bigsm0uk/metrics-alert-server/pkg/util"
 	"github.com/bigsm0uk/metrics-alert-server/pkg/util/hasher"
@@ -20,6 +19,7 @@ import (
 type MetricsSender struct {
 	client    *resty.Client
 	serverURL string
+	logger    *zap.Logger
 }
 
 const (
@@ -27,30 +27,31 @@ const (
 	retryDelay = time.Second
 )
 
-func NewMetricsSender(serverURL string) *MetricsSender {
+func NewMetricsSender(serverURL string, logger *zap.Logger) *MetricsSender {
 	c := resty.New()
 	c.SetRetryCount(maxRetries)
 	c.SetRetryWaitTime(retryDelay)
 	return &MetricsSender{
 		client:    c,
 		serverURL: serverURL,
+		logger:    logger,
 	}
 }
 
 func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics, key string) error {
 	if len(metrics) == 0 {
-		zl.Log.Debug("no metrics to send, skipping")
+		s.logger.Debug("no metrics to send, skipping")
 		return nil
 	}
 	jsonMetrics, err := json.Marshal(metrics)
 	if err != nil {
-		zl.Log.Error("failed to marshal metrics", zap.Error(err))
+		s.logger.Error("failed to marshal metrics", zap.Error(err))
 		return err
 	}
 
 	compressedData, err := util.CompressJSON(jsonMetrics)
 	if err != nil {
-		zl.Log.Error("failed to compress metrics", zap.Error(err))
+		s.logger.Error("failed to compress metrics", zap.Error(err))
 		return err
 	}
 
@@ -65,13 +66,13 @@ func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics, key string) erro
 	req.SetBody(compressedData)
 	resp, err := req.Post(url)
 	if err != nil {
-		zl.Log.Error("failed to send metrics batch",
+		s.logger.Error("failed to send metrics batch",
 			zap.Int("metrics_count", len(metrics)),
 			zap.Error(err))
 		return err
 	}
 
-	zl.Log.Debug("metrics batch sent",
+	s.logger.Debug("metrics batch sent",
 		zap.Int("metrics_count", len(metrics)),
 		zap.Int("status", resp.StatusCode()),
 		zap.Int("compressed_size", len(compressedData)))
@@ -83,12 +84,12 @@ func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics, key string) erro
 func (s *MetricsSender) SendMetricV2(metric domain.Metrics, key string) error {
 	jsonMetric, err := json.Marshal(metric)
 	if err != nil {
-		zl.Log.Error("failed to marshal metric", zap.Error(err))
+		s.logger.Error("failed to marshal metric", zap.Error(err))
 		return err
 	}
 	compressedData, err := util.CompressJSON(jsonMetric)
 	if err != nil {
-		zl.Log.Error("failed to compress metric",
+		s.logger.Error("failed to compress metric",
 			zap.String("metric", metric.ID),
 			zap.Error(err))
 		return err
@@ -104,13 +105,13 @@ func (s *MetricsSender) SendMetricV2(metric domain.Metrics, key string) error {
 	req.SetBody(compressedData)
 	resp, err := req.Post(url)
 	if err != nil {
-		zl.Log.Error("failed to send metric",
+		s.logger.Error("failed to send metric",
 			zap.String("metric", metric.ID),
 			zap.Error(err))
 		return err
 	}
 
-	zl.Log.Debug("metric sent",
+	s.logger.Debug("metric sent",
 		zap.String("metric", metric.ID),
 		zap.Int("status", resp.StatusCode()),
 		zap.Int("compressed_size", len(compressedData)))
@@ -137,7 +138,7 @@ func (s *MetricsSender) RunProcess(ctx context.Context, wg *sync.WaitGroup, repo
 				sem.Acquire()
 				defer sem.Release()
 				if err := s.SendMetricsV2(metrics, key); err != nil {
-					zl.Log.Error("failed to send metrics", zap.Error(err))
+					s.logger.Error("failed to send metrics", zap.Error(err))
 				}
 			}()
 		}

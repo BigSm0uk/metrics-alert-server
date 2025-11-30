@@ -7,10 +7,11 @@ import (
 	"sync"
 	"syscall"
 
+	"go.uber.org/zap"
+
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/agent"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/config"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/semaphore"
-	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 )
 
 type Agent struct {
@@ -18,10 +19,17 @@ type Agent struct {
 	Collector *agent.MetricsCollector
 	Sender    *agent.MetricsSender
 	Sem       *semaphore.Semaphore
+	logger    *zap.Logger
 }
 
-func NewAgent(cfg *config.AgentConfig) *Agent {
-	return &Agent{Cfg: cfg, Collector: agent.NewMetricsCollector(), Sender: agent.NewMetricsSender(cfg.Addr), Sem: semaphore.NewSemaphore(int(cfg.RateLimit))}
+func NewAgent(cfg *config.AgentConfig, logger *zap.Logger) *Agent {
+	return &Agent{
+		Cfg:       cfg,
+		Collector: agent.NewMetricsCollector(logger),
+		Sender:    agent.NewMetricsSender(cfg.Addr, logger),
+		Sem:       semaphore.NewSemaphore(int(cfg.RateLimit)),
+		logger:    logger,
+	}
 }
 
 func (a *Agent) Run() error {
@@ -36,7 +44,7 @@ func (a *Agent) Run() error {
 	<-ctx.Done()
 	wg.Wait()
 
-	zl.Log.Info("shutting down agent ...")
+	a.logger.Info("shutting down agent ...")
 
 	return nil
 }

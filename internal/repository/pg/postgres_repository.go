@@ -11,12 +11,12 @@ import (
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/config/storage"
 	pgerrors "github.com/bigsm0uk/metrics-alert-server/internal/app/storage/pgerror"
-	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
 )
 
 type PostgresRepository struct {
-	pool *pgxpool.Pool
+	pool   *pgxpool.Pool
+	logger *zap.Logger
 }
 
 var _ interfaces.MetricsRepository = (*PostgresRepository)(nil)
@@ -31,7 +31,7 @@ func newBackoff() *backoff.ExponentialBackOff {
 	return b
 }
 
-func NewPostgresRepository(ctx context.Context, cfg *storage.StorageConfig) (*PostgresRepository, error) {
+func NewPostgresRepository(ctx context.Context, cfg *storage.StorageConfig, logger *zap.Logger) (*PostgresRepository, error) {
 	config, err := pgxpool.ParseConfig(cfg.ConnectionString)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse DSN: %w", err)
@@ -47,7 +47,7 @@ func NewPostgresRepository(ctx context.Context, cfg *storage.StorageConfig) (*Po
 		return nil, fmt.Errorf("failed to create connection pool: %w", err)
 	}
 
-	return &PostgresRepository{pool: pool}, nil
+	return &PostgresRepository{pool: pool, logger: logger}, nil
 }
 
 func (r *PostgresRepository) Bootstrap(ctx context.Context) error {
@@ -68,7 +68,7 @@ func (r *PostgresRepository) Bootstrap(ctx context.Context) error {
 		if err != nil {
 			pgErrClassifier := pgerrors.NewPostgresErrorClassifier()
 			if pgErrClassifier.Classify(err) == pgerrors.NonRetriable {
-				zl.Log.Error("failed to bootstrap database", zap.Error(err))
+				r.logger.Error("failed to bootstrap database", zap.Error(err))
 				return backoff.Permanent(err)
 			}
 			return err
@@ -77,7 +77,7 @@ func (r *PostgresRepository) Bootstrap(ctx context.Context) error {
 	}
 
 	if err := backoff.Retry(operation, newBackoff()); err != nil {
-		zl.Log.Error("failed to bootstrap database after retries",
+		r.logger.Error("failed to bootstrap database after retries",
 			zap.Error(err),
 			zap.String("dsn", r.pool.Config().ConnString()))
 		return err

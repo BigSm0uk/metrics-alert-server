@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"go.uber.org/zap"
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/handler"
 	lm "github.com/bigsm0uk/metrics-alert-server/internal/handler/middleware"
@@ -14,7 +15,8 @@ import (
 
 // NewRouter создает и настраивает HTTP-роутер chi с middleware и маршрутами OpenAPI.
 // key используется для валидации/добавления хеша ответа.
-func NewRouter(h *handler.MetricHandler, key string) *chi.Mux {
+// logger используется для логирования в middleware.
+func NewRouter(h *handler.MetricHandler, key string, logger *zap.Logger) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Глобальные middleware
@@ -33,10 +35,10 @@ func NewRouter(h *handler.MetricHandler, key string) *chi.Mux {
 	r.Use(middleware.Timeout(time.Second * 60))
 	r.Use(middleware.RealIP)
 	r.Use(middleware.RequestID)
-	r.Use(lm.LoggerMiddleware)
+	r.Use(lm.LoggerMiddleware(logger))
 	r.Use(lm.GzipDecompressMiddleware)
 	r.Use(lm.GzipCompressMiddleware)
-	r.Use(lm.WithHashValidation(key))
+	r.Use(lm.WithHashValidation(key, logger))
 
 	// Монтируем OpenAPI сгенерированный роутер
 	oapiMetric.HandlerFromMux(h, r)
