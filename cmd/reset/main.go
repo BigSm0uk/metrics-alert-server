@@ -31,6 +31,16 @@ type FieldInfo struct {
 	ValType  string // для map
 }
 
+// primitives содержит множество примитивных типов Go
+var primitives = map[string]struct{}{
+	"int": {}, "int8": {}, "int16": {}, "int32": {}, "int64": {},
+	"uint": {}, "uint8": {}, "uint16": {}, "uint32": {}, "uint64": {},
+	"float32": {}, "float64": {},
+	"bool": {}, "string": {},
+	"byte": {}, "rune": {},
+	"complex64": {}, "complex128": {},
+}
+
 func main() {
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Ошибка: %v\n", err)
@@ -338,20 +348,11 @@ func generateFieldReset(buf *bytes.Buffer, field FieldInfo) {
 
 // isStruct проверяет, является ли тип структурой
 func isStruct(typeName string) bool {
-	// Примитивные типы
-	primitives := map[string]bool{
-		"int": true, "int8": true, "int16": true, "int32": true, "int64": true,
-		"uint": true, "uint8": true, "uint16": true, "uint32": true, "uint64": true,
-		"float32": true, "float64": true,
-		"bool": true, "string": true,
-		"byte": true, "rune": true,
-		"complex64": true, "complex128": true,
-	}
-
 	typeName = strings.TrimPrefix(typeName, "*")
 	typeName = strings.TrimPrefix(typeName, "[]")
 
-	return !primitives[typeName]
+	_, isPrimitive := primitives[typeName]
+	return !isPrimitive
 }
 
 // getZeroValue возвращает нулевое значение для типа

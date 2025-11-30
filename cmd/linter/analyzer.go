@@ -78,9 +78,9 @@ func isInMainOfMain(pass *analysis.Pass, n ast.Node) bool {
 		return false
 	}
 
+	var inMainFunc bool
 	for _, file := range pass.Files {
 		var found bool
-		var inMainFunc bool
 
 		ast.Inspect(file, func(node ast.Node) bool {
 			if found {
@@ -101,11 +101,11 @@ func isInMainOfMain(pass *analysis.Pass, n ast.Node) bool {
 		})
 
 		if found {
-			return inMainFunc
+			break
 		}
 	}
 
-	return false
+	return inMainFunc
 }
 
 func nodeContains(parent, child ast.Node) bool {
