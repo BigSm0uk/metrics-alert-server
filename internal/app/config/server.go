@@ -25,6 +25,7 @@ type ServerConfig struct {
 	Addr         string            `env:"ADDRESS"`
 	Store        Store.StoreConfig `required:"true"`
 	Key          string            `env:"KEY"`
+	CryptoKey    string            `env:"CRYPTO_KEY"`
 	Audit        audit.AuditConfig `yaml:"audit"`
 	Cache        cache.CacheConfig `yaml:"cache"`
 }
@@ -40,6 +41,7 @@ func LoadServerConfig() (*ServerConfig, error) {
 		flagInterval  = flag.String("i", "", "store interval")
 		flagDB        = flag.String("d", "", "database connection string")
 		flagKey       = flag.String("k", "", "key")
+		flagCryptoKey = flag.String("crypto-key", "", "path to private key file for decryption")
 		flagAuditURL  = flag.String("audit-url", "", "audit URL")
 		flagAuditFile = flag.String("audit-file", "", "audit file")
 	)
@@ -74,6 +76,9 @@ func LoadServerConfig() (*ServerConfig, error) {
 
 	if cfg.Key == "" && *flagKey != "" {
 		cfg.Key = *flagKey
+	}
+	if cfg.CryptoKey == "" && *flagCryptoKey != "" {
+		cfg.CryptoKey = *flagCryptoKey
 	}
 	cfg.Store.UseStore = cfg.isActiveStore()
 

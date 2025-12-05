@@ -1,6 +1,7 @@
 package router
 
 import (
+	"crypto/rsa"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -15,7 +16,9 @@ import (
 
 // NewRouter создает и настраивает HTTP-роутер chi с middleware и маршрутами OpenAPI.
 // key используется для валидации/добавления хеша ответа.
-func NewRouter(h *handler.MetricHandler, key string, logger *zap.Logger) *chi.Mux {
+// logger используется для логирования в middleware.
+// privateKey используется для расшифровки зашифрованных запросов.
+func NewRouter(h *handler.MetricHandler, key string, logger *zap.Logger, privateKey *rsa.PrivateKey) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Глобальные middleware
@@ -37,7 +40,8 @@ func NewRouter(h *handler.MetricHandler, key string, logger *zap.Logger) *chi.Mu
 	r.Use(lm.LoggerMiddleware(logger))
 	r.Use(lm.GzipDecompressMiddleware)
 	r.Use(lm.GzipCompressMiddleware)
-	r.Use(lm.WithHashValidation(key))
+	r.Use(lm.WithDecryption(privateKey, logger))
+	r.Use(lm.WithHashValidation(key, logger))
 
 	// Монтируем OpenAPI сгенерированный роутер
 	oapiMetric.HandlerFromMux(h, r)

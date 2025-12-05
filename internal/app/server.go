@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
+	"crypto/rsa"
 	"errors"
+	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -17,6 +19,7 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
 	"github.com/bigsm0uk/metrics-alert-server/internal/handler"
 	"github.com/bigsm0uk/metrics-alert-server/internal/service"
+	"github.com/bigsm0uk/metrics-alert-server/pkg/util/crypto"
 )
 
 type Server struct {
@@ -32,7 +35,17 @@ func NewServer(cfg *config.ServerConfig, h *handler.MetricHandler, ms interfaces
 }
 
 func (a *Server) Run() error {
-	r := router.NewRouter(a.h, a.cfg.Key, a.logger)
+	var privateKey *rsa.PrivateKey
+	var err error
+	if a.cfg.CryptoKey != "" {
+		privateKey, err = crypto.LoadPrivateKey(a.cfg.CryptoKey)
+		if err != nil {
+			return fmt.Errorf("failed to load private key: %w", err)
+		}
+		a.logger.Info("private key loaded for decryption", zap.String("path", a.cfg.CryptoKey))
+	}
+
+	r := router.NewRouter(a.h, a.cfg.Key, a.logger, privateKey)
 
 	srv := &http.Server{
 		Addr:    a.cfg.Addr,

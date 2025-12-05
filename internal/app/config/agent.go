@@ -14,6 +14,7 @@ type AgentConfig struct {
 	PollInterval   uint   `env:"POLL_INTERVAL"`
 	RateLimit      uint   `env:"RATE_LIMIT"`
 	Key            string `env:"KEY"`
+	CryptoKey      string `env:"CRYPTO_KEY"`
 }
 
 func LoadAgentConfig() (*AgentConfig, error) {
@@ -24,6 +25,7 @@ func LoadAgentConfig() (*AgentConfig, error) {
 	flag.UintVar(&cfg.PollInterval, "p", 2, "poll interval")
 	flag.UintVar(&cfg.RateLimit, "l", 1, "rate limit")
 	flag.StringVar(&cfg.Key, "k", "1234567890", "key")
+	flag.StringVar(&cfg.CryptoKey, "crypto-key", "", "path to public key file for encryption")
 	flag.Parse()
 
 	err := cleanenv.ReadEnv(cfg)

@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"crypto/rsa"
 	"fmt"
 	"sync"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/semaphore"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/bigsm0uk/metrics-alert-server/pkg/util"
+	"github.com/bigsm0uk/metrics-alert-server/pkg/util/crypto"
 	"github.com/bigsm0uk/metrics-alert-server/pkg/util/hasher"
 )
 
@@ -20,6 +22,7 @@ type MetricsSender struct {
 	client    *resty.Client
 	serverURL string
 	logger    *zap.Logger
+	publicKey *rsa.PublicKey
 }
 
 const (
@@ -27,15 +30,27 @@ const (
 	retryDelay = time.Second
 )
 
-func NewMetricsSender(serverURL string, logger *zap.Logger) *MetricsSender {
+func NewMetricsSender(serverURL string, logger *zap.Logger, cryptoKeyPath string) (*MetricsSender, error) {
 	c := resty.New()
 	c.SetRetryCount(maxRetries)
 	c.SetRetryWaitTime(retryDelay)
+
+	var publicKey *rsa.PublicKey
+	var err error
+	if cryptoKeyPath != "" {
+		publicKey, err = crypto.LoadPublicKey(cryptoKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load public key: %w", err)
+		}
+		logger.Info("public key loaded for encryption", zap.String("path", cryptoKeyPath))
+	}
+
 	return &MetricsSender{
 		client:    c,
 		serverURL: serverURL,
 		logger:    logger,
-	}
+		publicKey: publicKey,
+	}, nil
 }
 
 func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics, key string) error {
@@ -55,11 +70,23 @@ func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics, key string) erro
 		return err
 	}
 
+	// Шифруем данные, если публичный ключ доступен
+	if s.publicKey != nil {
+		compressedData, err = crypto.Encrypt(compressedData, s.publicKey)
+		if err != nil {
+			s.logger.Error("failed to encrypt metrics", zap.Error(err))
+			return err
+		}
+	}
+
 	url := fmt.Sprintf("%s/updates", s.serverURL)
 
 	req := s.client.R(). // TODO если ключ пустой, то не нужно устанавливать хеш
 				SetHeader("Content-Type", "application/json").
 				SetHeader("Content-Encoding", "gzip")
+	if s.publicKey != nil {
+		req.SetHeader("Content-Encryption", "rsa")
+	}
 	if key != "" {
 		req.SetHeader("HashSHA256", hasher.Hash(string(jsonMetrics), key))
 	}
@@ -76,7 +103,6 @@ func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics, key string) erro
 		zap.Int("metrics_count", len(metrics)),
 		zap.Int("status", resp.StatusCode()),
 		zap.Int("compressed_size", len(compressedData)))
-
 	return nil
 }
 
@@ -95,10 +121,24 @@ func (s *MetricsSender) SendMetricV2(metric domain.Metrics, key string) error {
 		return err
 	}
 
+	// Шифруем данные, если публичный ключ доступен
+	if s.publicKey != nil {
+		compressedData, err = crypto.Encrypt(compressedData, s.publicKey)
+		if err != nil {
+			s.logger.Error("failed to encrypt metric",
+				zap.String("metric", metric.ID),
+				zap.Error(err))
+			return err
+		}
+	}
+
 	url := fmt.Sprintf("%s/update", s.serverURL)
 	req := s.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Content-Encoding", "gzip")
+	if s.publicKey != nil {
+		req.SetHeader("Content-Encryption", "rsa")
+	}
 	if key != "" {
 		req.SetHeader("HashSHA256", hasher.Hash(string(jsonMetric), key))
 	}
@@ -115,7 +155,6 @@ func (s *MetricsSender) SendMetricV2(metric domain.Metrics, key string) error {
 		zap.String("metric", metric.ID),
 		zap.Int("status", resp.StatusCode()),
 		zap.Int("compressed_size", len(compressedData)))
-
 	return nil
 }
 

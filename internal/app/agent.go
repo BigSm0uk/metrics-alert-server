@@ -22,14 +22,19 @@ type Agent struct {
 	logger    *zap.Logger
 }
 
-func NewAgent(cfg *config.AgentConfig, logger *zap.Logger) *Agent {
+func NewAgent(cfg *config.AgentConfig, logger *zap.Logger) (*Agent, error) {
+	sender, err := agent.NewMetricsSender(cfg.Addr, logger, cfg.CryptoKey)
+	if err != nil {
+		return nil, err
+	}
+	
 	return &Agent{
 		Cfg:       cfg,
 		Collector: agent.NewMetricsCollector(logger),
-		Sender:    agent.NewMetricsSender(cfg.Addr, logger),
+		Sender:    sender,
 		Sem:       semaphore.NewSemaphore(int(cfg.RateLimit)),
 		logger:    logger,
-	}
+	}, nil
 }
 
 func (a *Agent) Run() error {
