@@ -8,7 +8,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/bigsm0uk/metrics-alert-server/api/templates"
-	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
 	"github.com/bigsm0uk/metrics-alert-server/internal/service"
 	oapiMetric "github.com/bigsm0uk/metrics-alert-server/pkg/openapi/metric"
@@ -25,13 +24,14 @@ type MetricHandler struct {
 	key     string
 	as      *service.AuditService
 	cache   interfaces.MetricsCache
+	logger  *zap.Logger
 }
 
 // NewMetricHandler конструирует экземпляр обработчика метрик.
 // templatePath — путь к HTML-шаблону; при ошибке используется встроенный дефолтный шаблон.
 // key — секрет для заголовка HashSHA256.
 // as — сервис аудита.
-func NewMetricHandler(service *service.MetricService, templatePath, key string, as *service.AuditService, cache interfaces.MetricsCache) *MetricHandler {
+func NewMetricHandler(service *service.MetricService, templatePath, key string, as *service.AuditService, cache interfaces.MetricsCache, logger *zap.Logger) *MetricHandler {
 	tmpl := initializeTemplate(templatePath)
 
 	return &MetricHandler{
@@ -40,6 +40,7 @@ func NewMetricHandler(service *service.MetricService, templatePath, key string, 
 		key:     key,
 		as:      as,
 		cache:   cache,
+		logger:  logger,
 	}
 }
 
@@ -130,10 +131,10 @@ func handleNotFound(w http.ResponseWriter, errText string) {
 	handleError(w, http.StatusNotFound, errText)
 }
 
-func jsonWithHashValueHandler(w http.ResponseWriter, data any, key string) {
+func (h *MetricHandler) jsonWithHashValueHandler(w http.ResponseWriter, data any, key string) {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		zl.Log.Error("failed to marshal response data", zap.Error(err))
+		h.logger.Error("failed to marshal response data", zap.Error(err))
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -144,7 +145,7 @@ func jsonWithHashValueHandler(w http.ResponseWriter, data any, key string) {
 	w.WriteHeader(http.StatusOK)
 
 	if _, err := w.Write(jsonData); err != nil {
-		zl.Log.Error("failed to write response", zap.Error(err))
+		h.logger.Error("failed to write response", zap.Error(err))
 	}
 }
 

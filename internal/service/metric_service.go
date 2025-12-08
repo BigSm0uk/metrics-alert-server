@@ -7,7 +7,6 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
 	"github.com/bigsm0uk/metrics-alert-server/internal/repository/strategy"
@@ -19,11 +18,12 @@ import (
 type MetricService struct {
 	repository interfaces.MetricsRepository
 	store      interfaces.MetricsStore
+	logger     *zap.Logger
 }
 
 // NewService создает сервис метрик с переданным репозиторием и стором.
-func NewService(repository interfaces.MetricsRepository, store interfaces.MetricsStore) *MetricService {
-	return &MetricService{repository: repository, store: store}
+func NewService(repository interfaces.MetricsRepository, store interfaces.MetricsStore, logger *zap.Logger) *MetricService {
+	return &MetricService{repository: repository, store: store, logger: logger}
 }
 
 // SaveOrUpdateMetric сохраняет или обновляет одну метрику
@@ -33,7 +33,7 @@ func (s *MetricService) SaveOrUpdateMetric(ctx context.Context, metric *domain.M
 	oldMetric, err := s.repository.Metric(ctx, metric.ID, metric.MType)
 	if err != nil {
 		if errors.Is(err, domain.ErrMetricNotFound) {
-			zl.Log.Debug("new metric", zap.String("id", metric.ID), zap.String("type", metric.MType))
+			s.logger.Debug("new metric", zap.String("id", metric.ID), zap.String("type", metric.MType))
 			// Для новой метрики создаем пустую с нулевыми значениями
 			oldMetric = &domain.Metrics{
 				ID:    metric.ID,
@@ -56,7 +56,7 @@ func (s *MetricService) SaveOrUpdateMetric(ctx context.Context, metric *domain.M
 	// Сохраняем обновленную метрику
 	err = s.repository.SaveOrUpdate(ctx, updatedMetric)
 	if err != nil {
-		zl.Log.Error("failed to save metric",
+		s.logger.Error("failed to save metric",
 			zap.Error(err),
 			zap.String("type", metric.MType),
 			zap.String("id", metric.ID),
@@ -67,12 +67,12 @@ func (s *MetricService) SaveOrUpdateMetric(ctx context.Context, metric *domain.M
 	// Синхронизация с хранилищем, если требуется
 	if s.store != nil && s.store.IsActive() && s.store.IsSyncMode() {
 		if err := s.store.WriteMetric(*updatedMetric); err != nil {
-			zl.Log.Error("failed to save metric to store", zap.Error(err))
+			s.logger.Error("failed to save metric to store", zap.Error(err))
 			return err
 		}
 	}
 
-	zl.Log.Debug("updating metric",
+	s.logger.Debug("updating metric",
 		zap.String("type", metric.MType),
 		zap.String("id", metric.ID),
 		zap.String("value", fmt.Sprintf("%v", util.GetDefault(metric.Value))),
@@ -85,7 +85,7 @@ func (s *MetricService) SaveOrUpdateMetric(ctx context.Context, metric *domain.M
 func (s *MetricService) SaveOrUpdateMetricsBatch(ctx context.Context, metrics []*domain.Metrics) error {
 	err := s.repository.SaveOrUpdateBatch(ctx, metrics)
 	if err != nil {
-		zl.Log.Error("failed to save metrics batch", zap.Error(err))
+		s.logger.Error("failed to save metrics batch", zap.Error(err))
 		return err
 	}
 	if s.store != nil && s.store.IsActive() && s.store.IsSyncMode() {
@@ -100,7 +100,7 @@ func (s *MetricService) GetAllMetrics(ctx context.Context) ([]domain.Metrics, er
 	if err != nil {
 		return nil, err
 	}
-	zl.Log.Debug("Total metrics", zap.Int("len", len(m)))
+	s.logger.Debug("Total metrics", zap.Int("len", len(m)))
 	return m, nil
 }
 
@@ -110,7 +110,7 @@ func (s *MetricService) GetMetric(ctx context.Context, id, t string) (*domain.Me
 	if err != nil {
 		return nil, err
 	}
-	zl.Log.Debug("Get metric", zap.String("id", id))
+	s.logger.Debug("Get metric", zap.String("id", id))
 	return m, nil
 }
 
