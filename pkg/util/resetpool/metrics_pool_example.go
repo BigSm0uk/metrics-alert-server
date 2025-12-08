@@ -1,4 +1,4 @@
-package resetter_pool
+package resetpool
 
 import "github.com/bigsm0uk/metrics-alert-server/internal/domain"
 

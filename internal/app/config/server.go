@@ -19,42 +19,58 @@ const (
 )
 
 type ServerConfig struct {
-	Env          string            `yaml:"env"  env-default:"development"`
-	Storage      S.StorageConfig   `yaml:"storage" required:"true"`
-	TemplatePath string            `yaml:"template_path" env-default:"api/templates/metrics.html"`
-	Addr         string            `env:"ADDRESS"`
-	Store        Store.StoreConfig `required:"true"`
-	Key          string            `env:"KEY"`
-	CryptoKey    string            `env:"CRYPTO_KEY"`
-	Audit        audit.AuditConfig `yaml:"audit"`
-	Cache        cache.CacheConfig `yaml:"cache"`
+	Env          string            `yaml:"env" json:"env" env-default:"development"`
+	Storage      S.StorageConfig   `yaml:"storage" json:"storage" required:"true"`
+	TemplatePath string            `yaml:"template_path" json:"template_path" env-default:"api/templates/metrics.html"`
+	Addr         string            `yaml:"address" json:"address" env:"ADDRESS"`
+	Store        Store.StoreConfig `yaml:"store" json:"store" required:"true"`
+	Key          string            `yaml:"key" json:"key" env:"KEY"`
+	CryptoKey    string            `yaml:"crypto_key" json:"crypto_key" env:"CRYPTO_KEY"`
+	Audit        audit.AuditConfig `yaml:"audit" json:"audit"`
+	Cache        cache.CacheConfig `yaml:"cache" json:"cache"`
+	ConfigFile   string            `env:"CONFIG"`
 }
 
 func LoadServerConfig() (*ServerConfig, error) {
 	cfg := InitDefaultConfig()
-	path := flag.String("config", "config/config.dev.yaml", "path to config file")
 
 	var (
-		flagAddr      = flag.String("a", "", "server address")
-		flagFile      = flag.String("f", "", "path to store file")
-		flagRestore   = flag.Bool("r", true, "restore store from file")
-		flagInterval  = flag.String("i", "", "store interval")
-		flagDB        = flag.String("d", "", "database connection string")
-		flagKey       = flag.String("k", "", "key")
-		flagCryptoKey = flag.String("crypto-key", "", "path to private key file for decryption")
-		flagAuditURL  = flag.String("audit-url", "", "audit URL")
-		flagAuditFile = flag.String("audit-file", "", "audit file")
+		flagConfig     = flag.String("c", "", "path to config file")
+		flagConfigLong = flag.String("config", "", "path to config file")
+		flagAddr       = flag.String("a", "", "server address")
+		flagFile       = flag.String("f", "", "path to store file")
+		flagRestore    = flag.Bool("r", true, "restore store from file")
+		flagInterval   = flag.String("i", "", "store interval")
+		flagDB         = flag.String("d", "", "database connection string")
+		flagKey        = flag.String("k", "", "key")
+		flagCryptoKey  = flag.String("crypto-key", "", "path to private key file for decryption")
+		flagAuditURL   = flag.String("audit-url", "", "audit URL")
+		flagAuditFile  = flag.String("audit-file", "", "audit file")
 	)
 
 	flag.Parse()
 
-	// Пытаемся прочитать YAML файл (он перезапишет дефолты + применит env переменные)
-	if err := cleanenv.ReadConfig(*path, cfg); err != nil {
-		fmt.Printf("failed to read config: %v. In development mode. Using default config...", err)
-		// Если файла нет, применяем env переменные напрямую
-		_ = cleanenv.ReadEnv(cfg)
+	// Сначала применяем переменные окружения
+	_ = cleanenv.ReadEnv(cfg)
 
+	// Определяем путь к конфигурационному файлу
+	configPath := ""
+	if *flagConfig != "" {
+		configPath = *flagConfig
+	} else if *flagConfigLong != "" {
+		configPath = *flagConfigLong
+	} else if cfg.ConfigFile != "" {
+		configPath = cfg.ConfigFile
 	}
+
+	// Если указан конфигурационный файл, читаем его
+	if configPath != "" {
+		if err := cleanenv.ReadConfig(configPath, cfg); err != nil {
+			fmt.Printf("failed to read config file %s: %v. Using environment variables and defaults...\n", configPath, err)
+		}
+	}
+
+	// Флаги имеют наивысший приоритет
 	if *flagAddr != "" {
 		cfg.Addr = *flagAddr
 	}
@@ -74,10 +90,10 @@ func LoadServerConfig() (*ServerConfig, error) {
 		cfg.Storage.ConnectionString = *flagDB
 	}
 
-	if cfg.Key == "" && *flagKey != "" {
+	if *flagKey != "" {
 		cfg.Key = *flagKey
 	}
-	if cfg.CryptoKey == "" && *flagCryptoKey != "" {
+	if *flagCryptoKey != "" {
 		cfg.CryptoKey = *flagCryptoKey
 	}
 	cfg.Store.UseStore = cfg.isActiveStore()

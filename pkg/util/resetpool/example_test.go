@@ -1,4 +1,4 @@
-package resetter_pool
+package resetpool
 
 import (
 	"fmt"
