@@ -40,7 +40,7 @@ func NewAgent(cfg *config.AgentConfig, logger *zap.Logger) (*Agent, error) {
 func (a *Agent) Run() error {
 	wg := sync.WaitGroup{}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
 
 	go a.Collector.RunProcess(ctx, &wg, a.Cfg.PollInterval)
