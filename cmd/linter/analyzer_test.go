@@ -9,5 +9,5 @@ import (
 func TestAnalyzer(t *testing.T) {
 	// Запускаем тесты на тестовых данных
 	testdata := analysistest.TestData()
-	analysistest.Run(t, testdata, Analyzer, "a", "b")
+	analysistest.Run(t, testdata, Analyzer, "a", "b", "main")
 }
