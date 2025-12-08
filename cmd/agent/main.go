@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/bigsm0uk/metrics-alert-server/internal/app"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/config"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
@@ -9,11 +11,11 @@ import (
 func main() {
 	app, err := InitializeApp()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	err = app.Run()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }
 
@@ -22,8 +24,8 @@ func InitializeApp() (*app.Agent, error) {
 	if err != nil {
 		return nil, err
 	}
-	zl.InitLogger(cfg.Env)
-	defer zl.Log.Sync()
+	logger := zl.NewLogger(cfg.Env)
+	defer logger.Sync()
 
-	return app.NewAgent(cfg), nil
+	return app.NewAgent(cfg, logger)
 }

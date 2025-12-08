@@ -1,0 +1,8 @@
+{
+    "address": "localhost:9999",
+    "store": {
+        "restore": true,
+        "store_interval": "10s",
+        "store_file": "./test-metrics.json"
+    }
+}

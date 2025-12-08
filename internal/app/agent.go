@@ -7,10 +7,11 @@ import (
 	"sync"
 	"syscall"
 
+	"go.uber.org/zap"
+
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/agent"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/config"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/semaphore"
-	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 )
 
 type Agent struct {
@@ -18,16 +19,28 @@ type Agent struct {
 	Collector *agent.MetricsCollector
 	Sender    *agent.MetricsSender
 	Sem       *semaphore.Semaphore
+	logger    *zap.Logger
 }
 
-func NewAgent(cfg *config.AgentConfig) *Agent {
-	return &Agent{Cfg: cfg, Collector: agent.NewMetricsCollector(), Sender: agent.NewMetricsSender(cfg.Addr), Sem: semaphore.NewSemaphore(int(cfg.RateLimit))}
+func NewAgent(cfg *config.AgentConfig, logger *zap.Logger) (*Agent, error) {
+	sender, err := agent.NewMetricsSender(cfg.Addr, logger, cfg.CryptoKey)
+	if err != nil {
+		return nil, err
+	}
+	
+	return &Agent{
+		Cfg:       cfg,
+		Collector: agent.NewMetricsCollector(logger),
+		Sender:    sender,
+		Sem:       semaphore.NewSemaphore(int(cfg.RateLimit)),
+		logger:    logger,
+	}, nil
 }
 
 func (a *Agent) Run() error {
 	wg := sync.WaitGroup{}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
 
 	go a.Collector.RunProcess(ctx, &wg, a.Cfg.PollInterval)
@@ -36,7 +49,7 @@ func (a *Agent) Run() error {
 	<-ctx.Done()
 	wg.Wait()
 
-	zl.Log.Info("shutting down agent ...")
+	a.logger.Info("shutting down agent ...")
 
 	return nil
 }

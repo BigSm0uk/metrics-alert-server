@@ -1,9 +1,10 @@
 package audit
 
 import (
+	"go.uber.org/zap"
+
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/config/audit"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
-	"go.uber.org/zap"
 )
 
 // createAuditObservers создает observers на основе конфигурации.
