@@ -60,13 +60,11 @@ func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics, key string) erro
 	}
 	jsonMetrics, err := json.Marshal(metrics)
 	if err != nil {
-		s.logger.Error("failed to marshal metrics", zap.Error(err))
 		return err
 	}
 
 	compressedData, err := util.CompressJSON(jsonMetrics)
 	if err != nil {
-		s.logger.Error("failed to compress metrics", zap.Error(err))
 		return err
 	}
 
@@ -74,7 +72,6 @@ func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics, key string) erro
 	if s.publicKey != nil {
 		compressedData, err = crypto.Encrypt(compressedData, s.publicKey)
 		if err != nil {
-			s.logger.Error("failed to encrypt metrics", zap.Error(err))
 			return err
 		}
 	}
@@ -93,9 +90,6 @@ func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics, key string) erro
 	req.SetBody(compressedData)
 	resp, err := req.Post(url)
 	if err != nil {
-		s.logger.Error("failed to send metrics batch",
-			zap.Int("metrics_count", len(metrics)),
-			zap.Error(err))
 		return err
 	}
 
@@ -110,14 +104,10 @@ func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics, key string) erro
 func (s *MetricsSender) SendMetricV2(metric domain.Metrics, key string) error {
 	jsonMetric, err := json.Marshal(metric)
 	if err != nil {
-		s.logger.Error("failed to marshal metric", zap.Error(err))
 		return err
 	}
 	compressedData, err := util.CompressJSON(jsonMetric)
 	if err != nil {
-		s.logger.Error("failed to compress metric",
-			zap.String("metric", metric.ID),
-			zap.Error(err))
 		return err
 	}
 
@@ -125,9 +115,6 @@ func (s *MetricsSender) SendMetricV2(metric domain.Metrics, key string) error {
 	if s.publicKey != nil {
 		compressedData, err = crypto.Encrypt(compressedData, s.publicKey)
 		if err != nil {
-			s.logger.Error("failed to encrypt metric",
-				zap.String("metric", metric.ID),
-				zap.Error(err))
 			return err
 		}
 	}
@@ -145,9 +132,6 @@ func (s *MetricsSender) SendMetricV2(metric domain.Metrics, key string) error {
 	req.SetBody(compressedData)
 	resp, err := req.Post(url)
 	if err != nil {
-		s.logger.Error("failed to send metric",
-			zap.String("metric", metric.ID),
-			zap.Error(err))
 		return err
 	}
 

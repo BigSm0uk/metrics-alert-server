@@ -40,7 +40,7 @@ func NewRouter(h *handler.MetricHandler, key string, logger *zap.Logger, private
 	r.Use(lm.LoggerMiddleware(logger))
 	r.Use(lm.GzipDecompressMiddleware)
 	r.Use(lm.GzipCompressMiddleware)
-	r.Use(lm.WithDecryption(privateKey, logger))
+	r.Use(lm.WithDecryption(privateKey))
 	r.Use(lm.WithHashValidation(key, logger))
 
 	// Монтируем OpenAPI сгенерированный роутер
