@@ -11,7 +11,6 @@ import (
 	"go.uber.org/zap"
 
 	pgerrors "github.com/bigsm0uk/metrics-alert-server/internal/app/storage/pgerror"
-	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 )
 
@@ -38,7 +37,7 @@ func (r *PostgresRepository) Metric(ctx context.Context, id, metricType string) 
 		err := r.pool.QueryRow(ctx, sqlQuery, args...).Scan(&gotID, &gotType, &value, &delta, &hash)
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
-				zl.Log.Debug("metric not found", zap.String("id", id), zap.String("type", metricType))
+				r.logger.Debug("metric not found", zap.String("id", id), zap.String("type", metricType))
 				return backoff.Permanent(domain.ErrMetricNotFound)
 			}
 			pgErrClassifier := pgerrors.NewPostgresErrorClassifier()

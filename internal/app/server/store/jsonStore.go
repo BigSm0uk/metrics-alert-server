@@ -12,14 +12,14 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/config/store"
-	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
 )
 
 type JSONStore struct {
-	r   interfaces.MetricsRepository
-	cfg *store.StoreConfig
+	r      interfaces.MetricsRepository
+	cfg    *store.StoreConfig
+	logger *zap.Logger
 
 	storeInterval time.Duration
 	syncMode      bool // true если интервал = 0
@@ -29,7 +29,7 @@ type JSONStore struct {
 
 var _ interfaces.MetricsStore = (*JSONStore)(nil)
 
-func NewJSONStore(r interfaces.MetricsRepository, cfg *store.StoreConfig) (*JSONStore, error) {
+func NewJSONStore(r interfaces.MetricsRepository, cfg *store.StoreConfig, logger *zap.Logger) (*JSONStore, error) {
 	interval, err := time.ParseDuration(cfg.StoreInterval + "s")
 	if err != nil {
 		return nil, err
@@ -40,6 +40,7 @@ func NewJSONStore(r interfaces.MetricsRepository, cfg *store.StoreConfig) (*JSON
 	ms := &JSONStore{
 		r:             r,
 		cfg:           cfg,
+		logger:        logger,
 		storeInterval: interval,
 		syncMode:      syncMode,
 		ticker:        time.NewTicker(interval),
@@ -67,7 +68,7 @@ func (s *JSONStore) startPeriodicSave(ctx context.Context) {
 			select {
 			case <-s.ticker.C:
 				if err := s.SaveAllMetrics(ctx); err != nil {
-					zl.Log.Error("failed to save metrics during periodic save", zap.Error(err))
+					s.logger.Error("failed to save metrics during periodic save", zap.Error(err))
 				}
 			case <-s.stopChan:
 				return
@@ -79,7 +80,7 @@ func (s *JSONStore) startPeriodicSave(ctx context.Context) {
 func (s *JSONStore) WriteMetric(metric domain.Metrics) error {
 	file, err := os.OpenFile(s.cfg.FileStoragePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
 	if err != nil {
-		zl.Log.Error("failed to open file for write", zap.Error(err), zap.String("filePath", s.cfg.FileStoragePath))
+		s.logger.Error("failed to open file for write", zap.Error(err), zap.String("filePath", s.cfg.FileStoragePath))
 		return err
 	}
 	defer file.Close()
@@ -89,7 +90,7 @@ func (s *JSONStore) WriteMetric(metric domain.Metrics) error {
 
 	encoder := json.NewEncoder(writer)
 	if err := encoder.Encode(metric); err != nil {
-		zl.Log.Error("failed to encode metric", zap.Error(err))
+		s.logger.Error("failed to encode metric", zap.Error(err))
 		return err
 	}
 
@@ -107,17 +108,17 @@ func (s *JSONStore) SaveAllMetrics(ctx context.Context) error {
 
 	for _, metric := range metrics {
 		if err := encoder.Encode(metric); err != nil {
-			zl.Log.Error("failed to encode metric to buffer", zap.Error(err))
+			s.logger.Error("failed to encode metric to buffer", zap.Error(err))
 			return err
 		}
 	}
 
 	if err := os.WriteFile(s.cfg.FileStoragePath, buffer.Bytes(), 0o644); err != nil {
-		zl.Log.Error("failed to write buffer to file", zap.Error(err), zap.String("filePath", s.cfg.FileStoragePath))
+		s.logger.Error("failed to write buffer to file", zap.Error(err), zap.String("filePath", s.cfg.FileStoragePath))
 		return err
 	}
 
-	zl.Log.Info("successfully saved all metrics", zap.Int("count", len(metrics)))
+	s.logger.Info("successfully saved all metrics", zap.Int("count", len(metrics)))
 	return nil
 }
 
@@ -125,10 +126,10 @@ func (s *JSONStore) Restore(ctx context.Context) error {
 	file, err := os.Open(s.cfg.FileStoragePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			zl.Log.Info("storage file does not exist, starting with empty store")
+			s.logger.Info("storage file does not exist, starting with empty store")
 			return nil
 		}
-		zl.Log.Error("failed to open file for read", zap.Error(err), zap.String("filePath", s.cfg.FileStoragePath))
+		s.logger.Error("failed to open file for read", zap.Error(err), zap.String("filePath", s.cfg.FileStoragePath))
 		return err
 	}
 	defer file.Close()
@@ -144,18 +145,18 @@ func (s *JSONStore) Restore(ctx context.Context) error {
 			break
 		}
 		if err != nil {
-			zl.Log.Error("failed to decode metric", zap.Error(err))
+			s.logger.Error("failed to decode metric", zap.Error(err))
 			return err
 		}
 
 		if err := s.r.SaveOrUpdate(ctx, &metric); err != nil {
-			zl.Log.Error("failed to save metric during restore", zap.Error(err))
+			s.logger.Error("failed to save metric during restore", zap.Error(err))
 			return err
 		}
 		count++
 	}
 
-	zl.Log.Info("successfully restored metrics", zap.Int("count", count))
+	s.logger.Info("successfully restored metrics", zap.Int("count", count))
 	return nil
 }
 
@@ -166,12 +167,12 @@ func (s *JSONStore) Close(ctx context.Context) error {
 	}
 	if s.IsActive() {
 		if err := s.SaveAllMetrics(ctx); err != nil {
-			zl.Log.Error("failed to save metrics during close", zap.Error(err))
+			s.logger.Error("failed to save metrics during close", zap.Error(err))
 			return err
 		}
 	}
 
-	zl.Log.Info("store closed successfully")
+	s.logger.Info("store closed successfully")
 	return nil
 }
 
