@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
+	"net"
 	"sync"
 	"time"
 
@@ -23,12 +24,28 @@ type MetricsSender struct {
 	serverURL string
 	logger    *zap.Logger
 	publicKey *rsa.PublicKey
+	localIP   string
 }
 
 const (
 	maxRetries = 3
 	retryDelay = time.Second
 )
+
+func getLocalIP() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return ""
+	}
+	for _, addr := range addrs {
+		if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
+			if ipNet.IP.To4() != nil {
+				return ipNet.IP.String()
+			}
+		}
+	}
+	return ""
+}
 
 func NewMetricsSender(serverURL string, logger *zap.Logger, cryptoKeyPath string) (*MetricsSender, error) {
 	c := resty.New()
@@ -45,11 +62,17 @@ func NewMetricsSender(serverURL string, logger *zap.Logger, cryptoKeyPath string
 		logger.Info("public key loaded for encryption", zap.String("path", cryptoKeyPath))
 	}
 
+	localIP := getLocalIP()
+	if localIP != "" {
+		logger.Info("local IP detected", zap.String("ip", localIP))
+	}
+
 	return &MetricsSender{
 		client:    c,
 		serverURL: serverURL,
 		logger:    logger,
 		publicKey: publicKey,
+		localIP:   localIP,
 	}, nil
 }
 
@@ -81,6 +104,9 @@ func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics, key string) erro
 	req := s.client.R(). // TODO если ключ пустой, то не нужно устанавливать хеш
 				SetHeader("Content-Type", "application/json").
 				SetHeader("Content-Encoding", "gzip")
+	if s.localIP != "" {
+		req.SetHeader("X-Real-IP", s.localIP)
+	}
 	if s.publicKey != nil {
 		req.SetHeader("Content-Encryption", "rsa")
 	}
@@ -123,6 +149,9 @@ func (s *MetricsSender) SendMetricV2(metric domain.Metrics, key string) error {
 	req := s.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Content-Encoding", "gzip")
+	if s.localIP != "" {
+		req.SetHeader("X-Real-IP", s.localIP)
+	}
 	if s.publicKey != nil {
 		req.SetHeader("Content-Encryption", "rsa")
 	}

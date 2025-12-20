@@ -19,33 +19,35 @@ const (
 )
 
 type ServerConfig struct {
-	Env          string            `yaml:"env" json:"env" env-default:"development"`
-	Storage      S.StorageConfig   `yaml:"storage" json:"storage" required:"true"`
-	TemplatePath string            `yaml:"template_path" json:"template_path" env-default:"api/templates/metrics.html"`
-	Addr         string            `yaml:"address" json:"address" env:"ADDRESS"`
-	Store        Store.StoreConfig `yaml:"store" json:"store" required:"true"`
-	Key          string            `yaml:"key" json:"key" env:"KEY"`
-	CryptoKey    string            `yaml:"crypto_key" json:"crypto_key" env:"CRYPTO_KEY"`
-	Audit        audit.AuditConfig `yaml:"audit" json:"audit"`
-	Cache        cache.CacheConfig `yaml:"cache" json:"cache"`
-	ConfigFile   string            `env:"CONFIG"`
+	Env           string            `yaml:"env" json:"env" env-default:"development"`
+	Storage       S.StorageConfig   `yaml:"storage" json:"storage" required:"true"`
+	TemplatePath  string            `yaml:"template_path" json:"template_path" env-default:"api/templates/metrics.html"`
+	Addr          string            `yaml:"address" json:"address" env:"ADDRESS"`
+	Store         Store.StoreConfig `yaml:"store" json:"store" required:"true"`
+	Key           string            `yaml:"key" json:"key" env:"KEY"`
+	CryptoKey     string            `yaml:"crypto_key" json:"crypto_key" env:"CRYPTO_KEY"`
+	TrustedSubnet string            `yaml:"trusted_subnet" json:"trusted_subnet" env:"TRUSTED_SUBNET"`
+	Audit         audit.AuditConfig `yaml:"audit" json:"audit"`
+	Cache         cache.CacheConfig `yaml:"cache" json:"cache"`
+	ConfigFile    string            `env:"CONFIG"`
 }
 
 func LoadServerConfig() (*ServerConfig, error) {
 	cfg := InitDefaultConfig()
 
 	var (
-		flagConfig     = flag.String("c", "", "path to config file")
-		flagConfigLong = flag.String("config", "", "path to config file")
-		flagAddr       = flag.String("a", "", "server address")
-		flagFile       = flag.String("f", "", "path to store file")
-		flagRestore    = flag.Bool("r", true, "restore store from file")
-		flagInterval   = flag.String("i", "", "store interval")
-		flagDB         = flag.String("d", "", "database connection string")
-		flagKey        = flag.String("k", "", "key")
-		flagCryptoKey  = flag.String("crypto-key", "", "path to private key file for decryption")
-		flagAuditURL   = flag.String("audit-url", "", "audit URL")
-		flagAuditFile  = flag.String("audit-file", "", "audit file")
+		flagConfig        = flag.String("c", "", "path to config file")
+		flagConfigLong    = flag.String("config", "", "path to config file")
+		flagAddr          = flag.String("a", "", "server address")
+		flagFile          = flag.String("f", "", "path to store file")
+		flagRestore       = flag.Bool("r", true, "restore store from file")
+		flagInterval      = flag.String("i", "", "store interval")
+		flagDB            = flag.String("d", "", "database connection string")
+		flagKey           = flag.String("k", "", "key")
+		flagCryptoKey     = flag.String("crypto-key", "", "path to private key file for decryption")
+		flagTrustedSubnet = flag.String("t", "", "trusted subnet (CIDR)")
+		flagAuditURL      = flag.String("audit-url", "", "audit URL")
+		flagAuditFile     = flag.String("audit-file", "", "audit file")
 	)
 
 	flag.Parse()
@@ -95,6 +97,9 @@ func LoadServerConfig() (*ServerConfig, error) {
 	}
 	if *flagCryptoKey != "" {
 		cfg.CryptoKey = *flagCryptoKey
+	}
+	if *flagTrustedSubnet != "" {
+		cfg.TrustedSubnet = *flagTrustedSubnet
 	}
 	cfg.Store.UseStore = cfg.isActiveStore()
 

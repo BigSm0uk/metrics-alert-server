@@ -45,7 +45,7 @@ func (a *Server) Run() error {
 		a.logger.Info("private key loaded for decryption", zap.String("path", a.cfg.CryptoKey))
 	}
 
-	r := router.NewRouter(a.h, a.cfg.Key, a.logger, privateKey)
+	r := router.NewRouter(a.h, a.cfg.Key, a.logger, privateKey, a.cfg.TrustedSubnet)
 
 	srv := &http.Server{
 		Addr:    a.cfg.Addr,
