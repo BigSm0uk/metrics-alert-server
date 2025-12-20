@@ -166,5 +166,5 @@ func WithAuditService() ContainerOptions {
 
 // Build создает новый сервер
 func Build(c *Container) *Server {
-	return NewServer(c.config, c.handler, c.store, c.auditService, c.logger)
+	return NewServer(c.config, c.handler, c.store, c.auditService, c.service, c.logger)
 }

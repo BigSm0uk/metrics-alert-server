@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -13,8 +14,11 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 
+	pb "github.com/bigsm0uk/metrics-alert-server/api/proto"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/config"
+	grpcserver "github.com/bigsm0uk/metrics-alert-server/internal/app/grpc"
 	"github.com/bigsm0uk/metrics-alert-server/internal/app/router"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain/interfaces"
 	"github.com/bigsm0uk/metrics-alert-server/internal/handler"
@@ -27,11 +31,12 @@ type Server struct {
 	h      *handler.MetricHandler
 	ms     interfaces.MetricsStore
 	as     *service.AuditService
+	svc    *service.MetricService
 	logger *zap.Logger
 }
 
-func NewServer(cfg *config.ServerConfig, h *handler.MetricHandler, ms interfaces.MetricsStore, as *service.AuditService, logger *zap.Logger) *Server {
-	return &Server{cfg: cfg, h: h, ms: ms, as: as, logger: logger}
+func NewServer(cfg *config.ServerConfig, h *handler.MetricHandler, ms interfaces.MetricsStore, as *service.AuditService, svc *service.MetricService, logger *zap.Logger) *Server {
+	return &Server{cfg: cfg, h: h, ms: ms, as: as, svc: svc, logger: logger}
 }
 
 func (a *Server) Run() error {
@@ -51,6 +56,28 @@ func (a *Server) Run() error {
 		Addr:    a.cfg.Addr,
 		Handler: r,
 	}
+
+	var grpcSrv *grpc.Server
+	if a.cfg.GRPCAddr != "" {
+		opts := []grpc.ServerOption{}
+		if a.cfg.TrustedSubnet != "" {
+			opts = append(opts, grpc.UnaryInterceptor(grpcserver.SubnetCheckInterceptor(a.cfg.TrustedSubnet)))
+		}
+		grpcSrv = grpc.NewServer(opts...)
+		pb.RegisterMetricsServer(grpcSrv, grpcserver.NewMetricsServer(a.svc))
+
+		go func() {
+			lis, err := net.Listen("tcp", a.cfg.GRPCAddr)
+			if err != nil {
+				a.logger.Fatal("failed to listen gRPC", zap.Error(err))
+			}
+			a.logger.Info("starting gRPC server", zap.String("Addr", a.cfg.GRPCAddr))
+			if err := grpcSrv.Serve(lis); err != nil {
+				a.logger.Fatal("failed to serve gRPC", zap.Error(err))
+			}
+		}()
+	}
+
 	go func() {
 		a.logger.Info("pprof server listening on :6060")
 		a.logger.Info("error starting pprof server", zap.Error(http.ListenAndServe("localhost:6060", nil)))
@@ -70,6 +97,11 @@ func (a *Server) Run() error {
 	<-quit
 
 	a.logger.Info("shutting down server ...")
+
+	if grpcSrv != nil {
+		grpcSrv.GracefulStop()
+		a.logger.Info("gRPC server stopped")
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

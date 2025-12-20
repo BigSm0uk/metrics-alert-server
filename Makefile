@@ -25,7 +25,7 @@ DB_PASSWORD := metrics_password
 DB_NAME := metrics_dev
 DATABASE_URL := postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable
 
-.PHONY: all fmt lint vet test build clean install-tools help docker-up docker-down migrate-up migrate-down migrate-status migrate-create generate-docs
+.PHONY: all fmt lint vet test build clean install-tools help docker-up docker-down migrate-up migrate-down migrate-status migrate-create generate-docs generate-proto
 
 # Default target
 all: build
@@ -141,6 +141,11 @@ generate-docs:
 	@echo "[+] Generating docs..."
 	@npx @redocly/cli build-docs api/openapi.yaml -o $(DOCS_DIR)/redoc.html      
 	@echo "[+] Docs generated"
+
+generate-proto:
+	@echo "[+] Generating proto files..."
+	@PATH="$(GOPATH)/bin:$(PATH)" protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/metrics.proto
+	@echo "[+] Proto files generated"
 # Show help
 help:
 	@echo "Available commands:"
@@ -163,3 +168,4 @@ help:
 	@echo "  make migrate-create NAME=name - Create new migration"
 	@echo "  make migrate-reset - Reset database (down all + up all)"
 	@echo "  make generate-docs - Generate docs"
+	@echo "  make generate-proto - Generate proto files"

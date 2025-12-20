@@ -11,6 +11,7 @@ import (
 type AgentConfig struct {
 	Env            string `json:"env" env:"ENV"`
 	Addr           string `json:"address" env:"ADDRESS"`
+	GRPCAddr       string `json:"grpc_address" env:"GRPC_ADDRESS"`
 	ReportInterval uint   `json:"report_interval" env:"REPORT_INTERVAL"`
 	PollInterval   uint   `json:"poll_interval" env:"POLL_INTERVAL"`
 	RateLimit      uint   `json:"rate_limit" env:"RATE_LIMIT"`
@@ -36,6 +37,7 @@ func LoadAgentConfig() (*AgentConfig, error) {
 
 	flag.StringVar(&cfg.Env, "e", cfg.Env, "environment")
 	flag.StringVar(&cfg.Addr, "a", cfg.Addr, "http server address")
+	flag.StringVar(&cfg.GRPCAddr, "g", "", "grpc server address")
 	flag.UintVar(&cfg.ReportInterval, "r", cfg.ReportInterval, "report interval")
 	flag.UintVar(&cfg.PollInterval, "p", cfg.PollInterval, "poll interval")
 	flag.UintVar(&cfg.RateLimit, "l", cfg.RateLimit, "rate limit")

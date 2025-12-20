@@ -23,6 +23,7 @@ type ServerConfig struct {
 	Storage       S.StorageConfig   `yaml:"storage" json:"storage" required:"true"`
 	TemplatePath  string            `yaml:"template_path" json:"template_path" env-default:"api/templates/metrics.html"`
 	Addr          string            `yaml:"address" json:"address" env:"ADDRESS"`
+	GRPCAddr      string            `yaml:"grpc_address" json:"grpc_address" env:"GRPC_ADDRESS"`
 	Store         Store.StoreConfig `yaml:"store" json:"store" required:"true"`
 	Key           string            `yaml:"key" json:"key" env:"KEY"`
 	CryptoKey     string            `yaml:"crypto_key" json:"crypto_key" env:"CRYPTO_KEY"`
@@ -39,6 +40,7 @@ func LoadServerConfig() (*ServerConfig, error) {
 		flagConfig        = flag.String("c", "", "path to config file")
 		flagConfigLong    = flag.String("config", "", "path to config file")
 		flagAddr          = flag.String("a", "", "server address")
+		flagGRPCAddr      = flag.String("g", "", "gRPC server address")
 		flagFile          = flag.String("f", "", "path to store file")
 		flagRestore       = flag.Bool("r", true, "restore store from file")
 		flagInterval      = flag.String("i", "", "store interval")
@@ -75,6 +77,9 @@ func LoadServerConfig() (*ServerConfig, error) {
 	// Флаги имеют наивысший приоритет
 	if *flagAddr != "" {
 		cfg.Addr = *flagAddr
+	}
+	if *flagGRPCAddr != "" {
+		cfg.GRPCAddr = *flagGRPCAddr
 	}
 	if *flagFile != "" {
 		cfg.Store.FileStoragePath = *flagFile
@@ -123,7 +128,8 @@ func (s *ServerConfig) IsPgStoreStorage() bool {
 
 func InitDefaultConfig() *ServerConfig {
 	return &ServerConfig{
-		Addr: "localhost:8080",
+		Addr:     "localhost:8080",
+		GRPCAddr: "localhost:9090",
 		Storage: S.StorageConfig{
 			ConnectionString: "",
 		},

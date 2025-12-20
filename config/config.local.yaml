@@ -4,3 +4,4 @@ storage:
 template_path: "api/templates/metrics.html"
 key: "1234567890"
 trusted_subnet: ""
+grpc_address: "localhost:9090"
