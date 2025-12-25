@@ -92,7 +92,7 @@ func (s *GRPCMetricsSender) SendMetrics(ctx context.Context, metrics []domain.Me
 	return nil
 }
 
-func (s *GRPCMetricsSender) RunProcess(ctx context.Context, wg *sync.WaitGroup, reportInterval uint, collector Collector, sem *semaphore.Semaphore) {
+func (s *GRPCMetricsSender) RunProcess(ctx context.Context, wg *sync.WaitGroup, reportInterval uint, collector Collector, sem *semaphore.Semaphore, key string) {
 	ticker := time.NewTicker(time.Duration(reportInterval) * time.Second)
 	defer ticker.Stop()
 	for {

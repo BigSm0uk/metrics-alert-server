@@ -82,22 +82,30 @@ func LoadPrivateKey(path string) (*rsa.PrivateKey, error) {
 }
 
 // Encrypt шифрует данные с помощью публичного ключа RSA
+// Автоматически выбирает подходящий алгоритм в зависимости от размера данных
 func Encrypt(data []byte, publicKey *rsa.PublicKey) ([]byte, error) {
 	if publicKey == nil {
 		return data, nil
 	}
 
-	// RSA может шифровать только данные размером меньше размера ключа минус padding
-	// Для больших данных используем гибридное шифрование
 	keySize := publicKey.Size()
 	maxChunkSize := keySize - 42 // OAEP padding overhead
 
 	if len(data) <= maxChunkSize {
-		// Маленькие данные шифруем напрямую
-		return rsa.EncryptOAEP(nil, rand.Reader, publicKey, data, nil)
+		return encryptSmallData(data, publicKey)
 	}
 
-	// Для больших данных используем AES-GCM с случайным ключом
+	return encryptLargeData(data, publicKey)
+}
+
+// encryptSmallData шифрует маленькие данные напрямую с помощью RSA-OAEP
+func encryptSmallData(data []byte, publicKey *rsa.PublicKey) ([]byte, error) {
+	return rsa.EncryptOAEP(nil, rand.Reader, publicKey, data, nil)
+}
+
+// encryptLargeData шифрует большие данные используя гибридное шифрование:
+// данные шифруются AES-GCM, а ключ AES шифруется RSA-OAEP
+func encryptLargeData(data []byte, publicKey *rsa.PublicKey) ([]byte, error) {
 	// Генерируем случайный AES ключ
 	aesKey := make([]byte, 32) // 256-bit key
 	if _, err := rand.Read(aesKey); err != nil {
@@ -117,6 +125,12 @@ func Encrypt(data []byte, publicKey *rsa.PublicKey) ([]byte, error) {
 	}
 
 	// Объединяем зашифрованный ключ и данные
+	return combineEncryptedKeyAndData(encryptedKey, encryptedData), nil
+}
+
+// combineEncryptedKeyAndData объединяет зашифрованный AES ключ и данные в один массив
+// Формат: [4 байта длины ключа][зашифрованный ключ][зашифрованные данные]
+func combineEncryptedKeyAndData(encryptedKey, encryptedData []byte) []byte {
 	result := make([]byte, 4+len(encryptedKey)+len(encryptedData))
 	// Первые 4 байта - длина зашифрованного ключа
 	result[0] = byte(len(encryptedKey) >> 24)
@@ -125,8 +139,7 @@ func Encrypt(data []byte, publicKey *rsa.PublicKey) ([]byte, error) {
 	result[3] = byte(len(encryptedKey))
 	copy(result[4:], encryptedKey)
 	copy(result[4+len(encryptedKey):], encryptedData)
-
-	return result, nil
+	return result
 }
 
 // Decrypt расшифровывает данные с помощью приватного ключа RSA

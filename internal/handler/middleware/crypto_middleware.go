@@ -9,22 +9,22 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/pkg/util/crypto"
 )
 
+const maxEncryptedBodySize = 10 << 20 // 10 мегабайт (10 * 2^20 = 10_485_760 байт)
+
 func WithDecryption(privateKey *rsa.PrivateKey) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Если приватный ключ не задан, пропускаем расшифровку
 			if privateKey == nil {
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			// Проверяем заголовок Content-Encryption
 			if r.Header.Get("Content-Encryption") != "rsa" {
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			// Читаем тело запроса
+			r.Body = http.MaxBytesReader(w, r.Body, maxEncryptedBodySize)
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
 				http.Error(w, "Failed to read request body", http.StatusBadRequest)

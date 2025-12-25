@@ -19,6 +19,11 @@ import (
 	"github.com/bigsm0uk/metrics-alert-server/pkg/util/hasher"
 )
 
+type IMetricsSender interface {
+	RunProcess(ctx context.Context, wg *sync.WaitGroup, reportInterval uint, collector Collector, sem *semaphore.Semaphore, key string)
+	Close() error
+}
+
 type MetricsSender struct {
 	client    *resty.Client
 	serverURL string
@@ -76,34 +81,25 @@ func NewMetricsSender(serverURL string, logger *zap.Logger, cryptoKeyPath string
 	}, nil
 }
 
-func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics, key string) error {
-	if len(metrics) == 0 {
-		s.logger.Debug("no metrics to send, skipping")
-		return nil
-	}
-	jsonMetrics, err := json.Marshal(metrics)
+// prepareRequest подготавливает HTTP запрос с шифрованием и заголовками
+func (s *MetricsSender) prepareRequest(jsonData []byte, key string) (*resty.Request, []byte, error) {
+	compressedData, err := util.CompressJSON(jsonData)
 	if err != nil {
-		return err
-	}
-
-	compressedData, err := util.CompressJSON(jsonMetrics)
-	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	// Шифруем данные, если публичный ключ доступен
 	if s.publicKey != nil {
 		compressedData, err = crypto.Encrypt(compressedData, s.publicKey)
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
 	}
 
-	url := fmt.Sprintf("%s/updates", s.serverURL)
+	req := s.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetHeader("Content-Encoding", "gzip")
 
-	req := s.client.R(). // TODO если ключ пустой, то не нужно устанавливать хеш
-				SetHeader("Content-Type", "application/json").
-				SetHeader("Content-Encoding", "gzip")
 	if s.localIP != "" {
 		req.SetHeader("X-Real-IP", s.localIP)
 	}
@@ -111,9 +107,30 @@ func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics, key string) erro
 		req.SetHeader("Content-Encryption", "rsa")
 	}
 	if key != "" {
-		req.SetHeader("HashSHA256", hasher.Hash(string(jsonMetrics), key))
+		req.SetHeader("HashSHA256", hasher.Hash(string(jsonData), key))
 	}
+
 	req.SetBody(compressedData)
+	return req, compressedData, nil
+}
+
+func (s *MetricsSender) SendMetrics(metrics []domain.Metrics, key string) error {
+	if len(metrics) == 0 {
+		s.logger.Debug("no metrics to send, skipping")
+		return nil
+	}
+
+	jsonMetrics, err := json.Marshal(metrics)
+	if err != nil {
+		return err
+	}
+
+	url := fmt.Sprintf("%s/updates", s.serverURL)
+	req, compressedData, err := s.prepareRequest(jsonMetrics, key)
+	if err != nil {
+		return err
+	}
+
 	resp, err := req.Post(url)
 	if err != nil {
 		return err
@@ -126,39 +143,19 @@ func (s *MetricsSender) SendMetricsV2(metrics []domain.Metrics, key string) erro
 	return nil
 }
 
-// SendMetricV2 отправляет одну метрику со сжатием
-func (s *MetricsSender) SendMetricV2(metric domain.Metrics, key string) error {
+// SendMetric отправляет одну метрику со сжатием
+func (s *MetricsSender) SendMetric(metric domain.Metrics, key string) error {
 	jsonMetric, err := json.Marshal(metric)
 	if err != nil {
 		return err
 	}
-	compressedData, err := util.CompressJSON(jsonMetric)
+
+	url := fmt.Sprintf("%s/update", s.serverURL)
+	req, compressedData, err := s.prepareRequest(jsonMetric, key)
 	if err != nil {
 		return err
 	}
 
-	// Шифруем данные, если публичный ключ доступен
-	if s.publicKey != nil {
-		compressedData, err = crypto.Encrypt(compressedData, s.publicKey)
-		if err != nil {
-			return err
-		}
-	}
-
-	url := fmt.Sprintf("%s/update", s.serverURL)
-	req := s.client.R().
-		SetHeader("Content-Type", "application/json").
-		SetHeader("Content-Encoding", "gzip")
-	if s.localIP != "" {
-		req.SetHeader("X-Real-IP", s.localIP)
-	}
-	if s.publicKey != nil {
-		req.SetHeader("Content-Encryption", "rsa")
-	}
-	if key != "" {
-		req.SetHeader("HashSHA256", hasher.Hash(string(jsonMetric), key))
-	}
-	req.SetBody(compressedData)
 	resp, err := req.Post(url)
 	if err != nil {
 		return err
@@ -175,6 +172,10 @@ type Collector interface {
 	GetMetrics() []domain.Metrics
 }
 
+func (s *MetricsSender) Close() error {
+	return nil
+}
+
 func (s *MetricsSender) RunProcess(ctx context.Context, wg *sync.WaitGroup, reportInterval uint, collector Collector, sem *semaphore.Semaphore, key string) {
 	ticker := time.NewTicker(time.Duration(reportInterval) * time.Second)
 	defer ticker.Stop()
@@ -189,7 +190,7 @@ func (s *MetricsSender) RunProcess(ctx context.Context, wg *sync.WaitGroup, repo
 				defer wg.Done()
 				sem.Acquire()
 				defer sem.Release()
-				if err := s.SendMetricsV2(metrics, key); err != nil {
+				if err := s.SendMetrics(metrics, key); err != nil {
 					s.logger.Error("failed to send metrics", zap.Error(err))
 				}
 			}()
