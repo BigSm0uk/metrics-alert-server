@@ -19,14 +19,15 @@ import (
 // ExampleMetricHandler_UpdateOrCreateMetricByBody демонстрирует обновление одной метрики через body.
 func ExampleMetricHandler_UpdateOrCreateMetricByBody() {
 	// Подготовка зависимостей: in-memory storage и репозиторий
+	logger := zap.NewNop()
 	memStore := storage.NewMemStorage()
 	repo := mem.NewMemRepository(memStore)
-	svc := service.NewService(repo, nil)
+	svc := service.NewService(repo, nil, logger)
 
 	// Аудит (выключен, чтобы не мешал примеру)
-	as := service.NewAuditService(&audit.AuditConfig{AuditURL: "", AuditFile: ""}, zap.NewNop())
+	as := service.NewAuditService(&audit.AuditConfig{AuditURL: "", AuditFile: ""}, logger)
 
-	h := NewMetricHandler(svc, "api/templates/metrics.html", "", as, cache.New(cache.DefaultExpiration, 0))
+	h := NewMetricHandler(svc, "api/templates/metrics.html", "", as, cache.New(cache.DefaultExpiration, 0), logger)
 
 	// Тело запроса: counter метрика
 	body := `{"id":"requests","type":"counter","delta":5}`
@@ -48,12 +49,13 @@ func ExampleMetricHandler_UpdateOrCreateMetricByBody() {
 
 // ExampleMetricHandler_UpdateOrCreateMetricsBatch демонстрирует batch обновление метрик.
 func ExampleMetricHandler_UpdateOrCreateMetricsBatch() {
+	logger := zap.NewNop()
 	memStore := storage.NewMemStorage()
 	repo := mem.NewMemRepository(memStore)
-	svc := service.NewService(repo, nil)
-	as := service.NewAuditService(&audit.AuditConfig{AuditURL: "", AuditFile: ""}, zap.NewNop())
+	svc := service.NewService(repo, nil, logger)
+	as := service.NewAuditService(&audit.AuditConfig{AuditURL: "", AuditFile: ""}, logger)
 
-	h := NewMetricHandler(svc, "api/templates/metrics.html", "", as, cache.New(cache.DefaultExpiration, 0))
+	h := NewMetricHandler(svc, "api/templates/metrics.html", "", as, cache.New(cache.DefaultExpiration, 0), logger)
 
 	body := `[
       {"id":"requests","type":"counter","delta":2},
@@ -72,12 +74,13 @@ func ExampleMetricHandler_UpdateOrCreateMetricsBatch() {
 
 // ExampleMetricHandler_GetAllMetrics демонстрирует получение HTML страницы со списком метрик.
 func ExampleMetricHandler_GetAllMetrics() {
+	logger := zap.NewNop()
 	memStore := storage.NewMemStorage()
 	repo := mem.NewMemRepository(memStore)
-	svc := service.NewService(repo, nil)
-	as := service.NewAuditService(&audit.AuditConfig{AuditURL: "", AuditFile: ""}, zap.NewNop())
+	svc := service.NewService(repo, nil, logger)
+	as := service.NewAuditService(&audit.AuditConfig{AuditURL: "", AuditFile: ""}, logger)
 
-	h := NewMetricHandler(svc, "api/templates/metrics.html", "", as, cache.New(cache.DefaultExpiration, 0))
+	h := NewMetricHandler(svc, "api/templates/metrics.html", "", as, cache.New(cache.DefaultExpiration, 0), logger)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rr := httptest.NewRecorder()

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestMetricsCollector_CollectRuntimeMetrics(t *testing.T) {
@@ -12,7 +13,7 @@ func TestMetricsCollector_CollectRuntimeMetrics(t *testing.T) {
 		c    *MetricsCollector
 	}{
 		name: "collect runtime metrics",
-		c:    NewMetricsCollector(),
+		c:    NewMetricsCollector(zap.NewNop()),
 	}
 	t.Run(test.name, func(t *testing.T) {
 		test.c.CollectRuntimeMetrics()

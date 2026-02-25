@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package metrics;
+
+option go_package = "github.com/bigsm0uk/metrics-alert-server/pkg/proto";
+
+message Metric {
+  string id = 1;
+
+  enum MType {
+    GAUGE = 0;
+    COUNTER = 1;
+  }
+
+  MType type = 2;
+  int64 delta = 3;
+  double value = 4;
+}
+
+message UpdateMetricsRequest {
+  repeated Metric metrics = 1;
+}
+
+message UpdateMetricsResponse {}
+
+service Metrics {
+  rpc UpdateMetrics(UpdateMetricsRequest) returns (UpdateMetricsResponse);
+}

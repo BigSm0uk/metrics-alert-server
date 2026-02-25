@@ -2,3 +2,4 @@ env: "production"
 storage:
   type: "mem"
 template_path: "api/templates/metrics.html"
+trusted_subnet: "10.0.0.0/8"

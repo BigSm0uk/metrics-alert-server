@@ -12,7 +12,6 @@ import (
 	"github.com/shirou/gopsutil/v4/mem"
 	"go.uber.org/zap"
 
-	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 	"github.com/bigsm0uk/metrics-alert-server/internal/domain"
 )
 
@@ -20,22 +19,26 @@ type MetricsCollector struct {
 	metrics   map[string]domain.Metrics
 	pollCount int64
 	mu        sync.RWMutex
+	logger    *zap.Logger
 }
 
-func NewMetricsCollector() *MetricsCollector {
-	return &MetricsCollector{metrics: make(map[string]domain.Metrics)}
+func NewMetricsCollector(logger *zap.Logger) *MetricsCollector {
+	return &MetricsCollector{
+		metrics: make(map[string]domain.Metrics),
+		logger:  logger,
+	}
 }
 
 func (c *MetricsCollector) CollectSystemMetrics() {
 	v, err := mem.VirtualMemory()
 	if err != nil {
-		zl.Log.Error("error collecting system metrics", zap.Error(err))
+		c.logger.Error("error collecting system metrics", zap.Error(err))
 		return
 	}
 
 	cpuPercents, err := cpu.Percent(0, true)
 	if err != nil {
-		zl.Log.Error("error collecting system metrics", zap.Error(err))
+		c.logger.Error("error collecting system metrics", zap.Error(err))
 		return
 	}
 
@@ -65,7 +68,7 @@ func (c *MetricsCollector) CollectSystemMetrics() {
 			Value: &val,
 		}
 	}
-	zl.Log.Debug("collected system metrics")
+	c.logger.Debug("collected system metrics")
 }
 
 func (c *MetricsCollector) CollectRuntimeMetrics() {
@@ -122,7 +125,7 @@ func (c *MetricsCollector) CollectRuntimeMetrics() {
 		MType: domain.Counter,
 		Delta: &c.pollCount,
 	}
-	zl.Log.Debug("collected runtime metrics")
+	c.logger.Debug("collected runtime metrics")
 }
 
 func (c *MetricsCollector) GetMetrics() []domain.Metrics {

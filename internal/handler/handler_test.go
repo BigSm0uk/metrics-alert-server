@@ -27,16 +27,18 @@ func setupTestServer(t *testing.T) (*httptest.Server, *resty.Client) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	r, err := repository.InitRepository(ctx, cfg)
+	logger := zl.NewLogger(cfg.Env)
+
+	r, err := repository.InitRepository(ctx, cfg, logger)
 	require.NoError(t, err)
 
-	ms, err := store.NewJSONStore(r, &cfg.Store)
+	ms, err := store.NewJSONStore(r, &cfg.Store, logger)
 	require.NoError(t, err)
 
-	svc := service.NewService(r, ms)
-	as := service.NewAuditService(&cfg.Audit, zl.Log)
+	svc := service.NewService(r, ms, logger)
+	as := service.NewAuditService(&cfg.Audit, logger)
 	cache := cache.New(cache.DefaultExpiration, 0)
-	h := NewMetricHandler(svc, cfg.TemplatePath, cfg.Key, as, cache)
+	h := NewMetricHandler(svc, cfg.TemplatePath, cfg.Key, as, cache, logger)
 
 	// Используем сгенерированный OpenAPI роутер
 	router := chi.NewRouter()

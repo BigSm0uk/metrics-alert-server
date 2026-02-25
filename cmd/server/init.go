@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/bigsm0uk/metrics-alert-server/internal/app"
-	"github.com/bigsm0uk/metrics-alert-server/internal/app/zl"
 )
 
 func initializeApp() (*app.Server, error) {
@@ -21,7 +20,6 @@ func initializeApp() (*app.Server, error) {
 		return nil, err
 	}
 	server := app.Build(container)
-	defer zl.Log.Sync()
 
 	return server, nil
 }
