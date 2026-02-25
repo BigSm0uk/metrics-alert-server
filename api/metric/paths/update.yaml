@@ -1,0 +1,43 @@
+post:
+  summary: Обновить/создать метрику по телу запроса
+  description: Обновить/создать метрику по телу запроса
+  operationId: updateOrCreateMetricByBody
+  tags:
+    - metric
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/metric_request.yaml
+  responses:
+    '200':
+      description: Метрика обновлена/создана
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/metric.yaml
+    '400':
+      description: Некорректные параметры
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/bad_request_error.yaml
+    '404':
+      description: Метрика не найдена
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/not_found_error.yaml
+    '500':
+      description: Внутренняя ошибка сервера
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/internal_server_error.yaml
+    default:
+      description: Неизвестная ошибка
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/generic_error.yaml

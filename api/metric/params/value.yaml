@@ -1,0 +1,8 @@
+name: value
+in: path
+required: true
+description: Значение метрики
+schema:
+  type: string
+x-go-name: Value
+x-go-type: string

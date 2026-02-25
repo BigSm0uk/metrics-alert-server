@@ -1,0 +1,214 @@
+version: '3'
+
+includes:
+  bench:
+    taskfile: ./taskfiles/bench.yml
+    dir: .
+    flatten: true
+  pprof:
+    taskfile: ./taskfiles/profiling.yml
+    dir: .
+    flatten: true
+  test:
+    taskfile: ./taskfiles/test.yml
+    dir: .
+    flatten: true
+vars:
+  GCI_VERSION: 'v0.13.6'
+  GOFUMPT_VERSION: 'v0.8.0'
+  OAPI_CODEGEN_VERSION: 'v2.4.0'
+  REDOCLY_VERSION: 'v2.7.0'
+  GO_VERSION: 'v1.24.7'
+
+  BIN_DIR: '{{.ROOT_DIR}}/bin'
+  CMD_DIR: '{{.ROOT_DIR}}/cmd'
+  CONFIG_DIR: '{{.ROOT_DIR}}/config'
+  NODE_MODULES_DIR: '{{.ROOT_DIR}}/node_modules/.bin'
+  OAPI_CODEGEN: '{{.BIN_DIR}}/oapi-codegen'
+  REDOCLY: '{{.NODE_MODULES_DIR}}/redocly'
+  GCI: '{{.BIN_DIR}}/gci'
+  GOFUMPT: '{{.BIN_DIR}}/gofumpt'
+  GODOC: '{{.BIN_DIR}}/godoc'
+
+tasks:
+  install-formatters:
+    desc: "Устанавливает форматтеры gci и gofumpt в ./bin"
+    summary: |
+      Проверяет наличие инструментов форматирования кода gofumpt и gci в директории bin.
+      Если инструменты не найдены, они будут автоматически установлены.
+      
+      Используется:
+        - gofumpt: для форматирования кода Go
+        - gci: для сортировки импортов Go
+    cmds:
+      - |
+        [ -f "{{.GOFUMPT}}" ] || {
+          echo '📦 Устанавливаем gofumpt {{.GOFUMPT_VERSION}}...'
+          GOBIN="{{.BIN_DIR}}" go install mvdan.cc/gofumpt@{{.GOFUMPT_VERSION}}
+        }
+        [ -f "{{.GCI}}" ] || {
+          echo '📦 Устанавливаем gci {{.GCI_VERSION}}...'
+          GOBIN="{{.BIN_DIR}}" go install github.com/daixiang0/gci@{{.GCI_VERSION}}
+        }
+    status:
+      - test -x "{{.GOFUMPT}}"
+      - test -x "{{.GCI}}"
+
+  format:
+    desc: "Форматирует весь проект gofumpt + gci"
+    summary: |
+      Форматирует все Go-файлы проекта с использованием gofumpt для стандартизации кода
+      и gci для сортировки импортов, исключая файлы в директориях mocks.
+    deps: [ install-formatters ]
+    cmds:
+      - |
+        echo "🧼 Форматируем через gofumpt ..."
+        find . -type f -name '*.go' ! -path '*/mocks/*' ! -path '*/vendor/*' ! -path '*/node_modules/*' -exec "{{.GOFUMPT}}" -extra -w {} +
+      - |
+        echo "🎯 Сортируем импорты через gci ..."
+        find . -type f -name '*.go' ! -path '*/mocks/*' ! -path '*/vendor/*' ! -path '*/node_modules/*' -exec "{{.GCI}}" write -s standard -s default -s "prefix(github.com/bigsm0uk)" {} +
+
+  redoc:install:
+    desc: "Устанавливает redocly в node_modules"
+    summary: |
+      Устанавливает redocly для генерации bundle OpenAPI
+    cmds:
+      - |
+        [ -f "{{.REDOCLY}}" ] || npm ci
+
+  redoc:bundle:
+    desc: "Генерация bundle OpenAPI через redocly"
+    summary: |
+      Собирает OpenAPI спецификацию в один файл и генерирует HTML документацию
+    deps: [ redoc:install ]
+    cmds:
+      - |
+        "{{.REDOCLY}}" bundle -o api/metric/openapi.bundle.yaml api/metric/openapi.yaml 
+        "{{.REDOCLY}}" build-docs -o api/docs/redoc.html api/metric/openapi.yaml
+
+  oapi:install:
+    desc: "Устанавливает oapi-codegen в ./bin"
+    summary: |
+      Устанавливает oapi-codegen для генерации Go-кода из OpenAPI
+    cmds:
+      - |
+        [ -f "{{.OAPI_CODEGEN}}" ] || {
+          mkdir -p "{{.BIN_DIR}}"
+          GOBIN="{{.BIN_DIR}}" go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@{{.OAPI_CODEGEN_VERSION}}
+        }
+
+  oapi:gen:
+    desc: "Генерация Go-кода из OpenAPI"
+    deps: [ oapi:install, redoc:bundle ]
+    cmds:
+      - |
+        set -e
+        if [ -f "api/metric/openapi.bundle.yaml" ]; then
+          echo "🚀 Генерируем Metric API через oapi-codegen"
+          "{{.OAPI_CODEGEN}}" -generate types -o pkg/openapi/metric/oas_types_gen.go api/metric/openapi.bundle.yaml 2>&1
+          "{{.OAPI_CODEGEN}}" -generate chi -o pkg/openapi/metric/oas_server_gen.go api/metric/openapi.bundle.yaml 2>&1
+        fi
+
+  deps:update:
+    desc: "Обновление зависимостей в go.mod"
+    cmds:
+      - |
+        echo "🔄 Обновление зависимостей в go.mod"
+        go mod tidy
+
+  server:build:
+    desc: "Сборка бинарника сервера"
+    summary: |
+      Компилирует server в директорию bin/
+    cmds:
+      - |
+        echo "🔨 Сборка server..."
+        go build -o "{{.BIN_DIR}}"/server "{{.CMD_DIR}}"/server
+        echo "✅ Server собран: {{.BIN_DIR}}/server"
+
+  agent:build:
+    desc: "Сборка бинарника агента"
+    summary: |
+      Компилирует agent в директорию bin/
+    cmds:
+      - |
+        echo "🔨 Сборка agent..."
+        go build -o "{{.BIN_DIR}}"/agent "{{.CMD_DIR}}"/agent
+        echo "✅ Agent собран: {{.BIN_DIR}}/agent"
+
+  build:all:
+    desc: "Сборка всех бинарников"
+    deps: [ server:build, agent:build ]
+
+  server:run:
+    desc: "Запуск сервера с PostgreSQL"
+    deps: [ server:build ]
+    summary: |
+      Запускает server с конфигурацией по умолчанию (PostgreSQL)
+    cmds:
+      - |
+        echo "🚀 Запуск server..."
+        "{{.BIN_DIR}}"/server --config="{{.CONFIG_DIR}}"/config.local.yaml
+
+  server:run:mem:
+    desc: "Запуск сервера с in-memory хранилищем"
+    deps: [ server:build ]
+    summary: |
+      Запускает server с хранилищем в памяти
+    cmds:
+      - |
+        echo "🚀 Запуск server (in-memory)..."
+        "{{.BIN_DIR}}"/server
+
+  agent:run:
+    desc: "Запуск агента"
+    deps: [ agent:build ]
+    summary: |
+      Запускает agent для отправки метрик
+    cmds:
+      - |
+        echo "🚀 Запуск agent..."
+        "{{.BIN_DIR}}"/agent
+
+  godoc:install:
+    desc: "Устанавливает godoc в ./bin"
+    summary: |
+      Устанавливает godoc для генерации документации
+    cmds:
+      - |
+        [ -f "{{.GODOC}}" ] || {
+          mkdir -p "{{.BIN_DIR}}"
+          GOBIN="{{.BIN_DIR}}" go install golang.org/x/tools/cmd/godoc@latest
+        }
+  godoc:run:
+    desc: "Запуск godoc"
+    deps: [ godoc:install ]
+    summary: |
+      Запускает godoc для генерации документации
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - |
+        echo "🚀 Запуск godoc на порту 6065..."
+        "{{.GODOC}}" -http=:6065
+
+  reset:build:
+    desc: "Сборка генератора Reset"
+    summary: |
+      Компилирует генератор reset в директорию bin/
+    cmds:
+      - |
+        echo "🔨 Сборка reset генератора..."
+        go build -o "{{.BIN_DIR}}"/reset "{{.CMD_DIR}}"/reset
+        echo "✅ Reset генератор собран: {{.BIN_DIR}}/reset"
+
+  reset:gen:
+    desc: "Генерация методов Reset() для структур"
+    deps: [ reset:build ]
+    summary: |
+      Сканирует проект и генерирует методы Reset() для всех структур
+      с комментарием // generate:reset
+    cmds:
+      - |
+        echo "🔄 Генерация методов Reset()..."
+        "{{.BIN_DIR}}"/reset "{{.ROOT_DIR}}"
+        echo "✅ Генерация завершена"

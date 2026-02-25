@@ -1,0 +1,13 @@
+get:
+  summary: OpenAPI specification
+  description: Возвращает OpenAPI specification
+  operationId: getOpenAPI
+  tags:
+    - metric
+  responses:
+    '200':
+      description: OpenAPI specification в формате YAML
+      content:
+        text/yaml:
+          schema:
+            type: string

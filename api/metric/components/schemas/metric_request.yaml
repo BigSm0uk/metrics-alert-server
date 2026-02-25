@@ -1,0 +1,18 @@
+type: object
+required:
+  - id
+  - type
+properties:
+  id:
+    type: string
+    description: Идентификатор метрики
+  type:
+    type: string
+    description: Тип метрики
+  value:
+    type: string
+    description: Значение метрики для gauge метрик
+  delta:
+    type: integer
+    description: Значение для counter метрик (накопительное)
+

@@ -1,0 +1,12 @@
+type: object
+required:
+  - id
+  - type
+properties:
+  id:
+    type: string
+    description: Идентификатор метрики
+  type:
+    type: string
+    description: Тип метрики
+

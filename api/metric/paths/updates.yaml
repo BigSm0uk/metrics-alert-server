@@ -1,0 +1,40 @@
+post:
+  summary: Обновить/создать несколько метрик по телу запроса
+  description: Обновить/создать несколько метрик по телу запроса
+  operationId: updateOrCreateMetricsBatch
+  tags:
+    - metric
+  requestBody:
+    required: true
+    content:
+      application/json:
+            schema:
+              type: array
+              items:
+                $ref: ../components/schemas/metric_request.yaml
+  responses:
+    '200':
+      description: Метрики обновлены
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: "Successfully updated {count} metrics"
+    '400':
+      description: Некорректные параметры
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/bad_request_error.yaml
+    '500':
+      description: Внутренняя ошибка сервера
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/internal_server_error.yaml
+    default:
+      description: Неизвестная ошибка
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/generic_error.yaml

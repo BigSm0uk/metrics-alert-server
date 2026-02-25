@@ -1,0 +1,11 @@
+name: type
+in: path
+required: true
+description: Тип метрики (gauge или counter)
+schema:
+  type: string
+  enum:
+    - gauge
+    - counter
+x-go-name: MType
+x-go-type: string

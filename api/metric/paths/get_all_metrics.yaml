@@ -1,0 +1,26 @@
+get:
+  summary: Получить все метрики
+  description: Получить все метрики
+  operationId: getAllMetrics
+  tags:
+    - metric
+  responses:
+    '200':
+      description: Все метрики
+      content:
+        text/html:
+          schema:
+            type: string
+            example: "All metrics"
+    '500':
+      description: Внутренняя ошибка сервера
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/internal_server_error.yaml
+    default:
+      description: Неизвестная ошибка
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/generic_error.yaml

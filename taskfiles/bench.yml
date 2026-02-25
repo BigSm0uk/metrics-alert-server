@@ -1,0 +1,132 @@
+version: '3'
+
+# Задачи для нагрузочного тестирования и бенчмарков
+
+vars:
+  HEY_VERSION: 'v0.1.4'
+  BIN_DIR: '{{.ROOT_DIR}}/bin'
+  CONFIG_DIR: '{{.ROOT_DIR}}/config'
+  BENCHMARKS_DIR: '{{.ROOT_DIR}}/benchmarks'
+  HEY_DIR: '{{.BIN_DIR}}/hey'
+  REQ_BODY_EXAMPLE: '{{.CONFIG_DIR}}/req.body.example.json'
+
+tasks:
+  
+  hey:install:
+    desc: "Устанавливает hey в папку bin"
+    summary: |
+      Устанавливает hey в папку bin
+    cmds:
+      - |
+        [ -f "{{.HEY_DIR}}" ] || {
+          mkdir -p "{{.BIN_DIR}}"
+          GOBIN="{{.BIN_DIR}}" go install github.com/rakyll/hey@{{.HEY_VERSION}}
+        }
+  
+  hey:run:
+    desc: "Запуск hey для нагрузочного тестирования"
+    deps: [ hey:install ]
+    summary: |
+      Запуск hey с batch обновлением метрик (1000 запросов, 50 воркеров)
+    cmds:
+      - |
+        echo "🚀 Нагрузочное тестирование: 1000 запросов, 50 воркеров"
+        "{{.HEY_DIR}}" -m POST -T "application/json" -D "{{.REQ_BODY_EXAMPLE}}" -n 1000 -c 50 http://localhost:8080/updates/
+  
+  hey:run:csv:
+    desc: "Запуск hey с выводом в CSV"
+    deps: [ hey:install ]
+    summary: |
+      Запуск hey с выводом результатов в CSV формате
+    cmds:
+      - |
+        mkdir -p "{{.BENCHMARKS_DIR}}"
+        echo "📊 Нагрузочное тестирование с выводом в CSV..."
+        "{{.HEY_DIR}}" -o csv -m POST -T "application/json" -D "{{.REQ_BODY_EXAMPLE}}" -n 1000 -c 50 http://localhost:8080/updates/ | tee "{{.BENCHMARKS_DIR}}/hey_results.csv"
+  
+  hey:run:light:
+    desc: "Легкая нагрузка для профилирования"
+    deps: [ hey:install ]
+    summary: |
+      Запуск с небольшой нагрузкой для снятия профилей (30 секунд, 20 воркеров)
+    cmds:
+      - |
+        echo "🔬 Легкая нагрузка: 30 секунд, 20 воркеров"
+        "{{.HEY_DIR}}" -m POST -T "application/json" -D "{{.REQ_BODY_EXAMPLE}}" -z 15s -c 20 http://localhost:8080/updates/
+        "{{.HEY_DIR}}" -m GET -z 15s -c 20 http://localhost:8080/
+  
+  hey:run:heavy:
+    desc: "Интенсивная нагрузка"
+    deps: [ hey:install ]
+    summary: |
+      Запуск с высокой нагрузкой (10000 запросов, 100 воркеров)
+    cmds:
+      - |
+        echo "💥 Интенсивная нагрузка: 10000 запросов, 100 воркеров"
+        "{{.HEY_DIR}}" -m POST -T "application/json" -D "{{.REQ_BODY_EXAMPLE}}" -n 10000 -c 100 http://localhost:8080/updates/
+  
+  bench:run:
+    desc: "Запуск всех бенчмарков"
+    summary: |
+      Запускает все Go бенчмарки в проекте
+    cmds:
+      - |
+        mkdir -p "{{.BENCHMARKS_DIR}}"
+        echo "📊 Запуск бенчмарков..."
+        go test -bench=. -benchmem -benchtime=3s ./... | tee "{{.BENCHMARKS_DIR}}/baseline.txt"
+  
+  bench:run:storage:
+    desc: "Бенчмарки storage слоя"
+    summary: |
+      Запускает бенчмарки только для storage компонентов
+    cmds:
+      - |
+        mkdir -p "{{.BENCHMARKS_DIR}}"
+        go test -bench=. -benchmem ./internal/app/storage/... | tee "{{.BENCHMARKS_DIR}}/storage.txt"
+  
+  bench:run:repository:
+    desc: "Бенчмарки repository слоя"
+    summary: |
+      Запускает бенчмарки только для repository компонентов
+    cmds:
+      - |
+        mkdir -p "{{.BENCHMARKS_DIR}}"
+        go test -bench=. -benchmem ./internal/repository/... | tee "{{.BENCHMARKS_DIR}}/repository.txt"
+  
+  bench:run:service:
+    desc: "Бенчмарки service слоя"
+    summary: |
+      Запускает бенчмарки только для service компонентов
+    cmds:
+      - |
+        mkdir -p "{{.BENCHMARKS_DIR}}"
+        go test -bench=. -benchmem ./internal/service/... | tee "{{.BENCHMARKS_DIR}}/service.txt"
+  
+  bench:run:handler:
+    desc: "Бенчмарки handler слоя"
+    summary: |
+      Запускает бенчмарки только для handler компонентов
+    cmds:
+      - |
+        mkdir -p "{{.BENCHMARKS_DIR}}"
+        go test -bench=. -benchmem ./internal/handler/... | tee "{{.BENCHMARKS_DIR}}/handler.txt"
+  
+  bench:compare:
+    desc: "Сравнение бенчмарков"
+    summary: |
+      Сравнивает baseline и новые результаты бенчмарков с помощью benchstat
+    cmds:
+      - |
+        if [ ! -f "{{.BENCHMARKS_DIR}}/baseline.txt" ]; then
+          echo "❌ Не найден baseline.txt"
+          echo "Запустите: task bench:run"
+          exit 1
+        fi
+        if [ ! -f "{{.BENCHMARKS_DIR}}/new.txt" ]; then
+          echo "❌ Не найден new.txt"
+          echo "Запустите: task bench:run > benchmarks/new.txt"
+          exit 1
+        fi
+        echo "📊 Сравнение бенчмарков..."
+        benchstat "{{.BENCHMARKS_DIR}}/baseline.txt" "{{.BENCHMARKS_DIR}}/new.txt"
+
