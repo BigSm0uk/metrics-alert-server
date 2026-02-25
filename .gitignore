@@ -10,6 +10,7 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+bin/
 
 # Binaries
 cmd/agent/main
@@ -23,3 +24,6 @@ vendor/
 # IDEs directories
 .idea
 .vscode
+node_modules
+store.json
+benchmarks/
